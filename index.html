@@ -203,7 +203,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .nav-item .icon{font-size:17px;line-height:1}
 .nav-item.active{color:var(--gold)}
 .nav-item:hover{color:var(--gold2)}
-.install-banner{position:fixed;bottom:0;left:0;right:0;max-width:600px;margin:0 auto;background:var(--navy);border-top:2px solid var(--gold);padding:14px 18px;z-index:9999}
+.install-banner{position:fixed;bottom:0;left:0;right:0;max-width:600px;margin:0 auto;background:var(--navy);border-top:2px solid var(--gold);padding:14px 18px;z-index:10000}
 .install-banner h3{font-family:'Playfair Display',serif;color:var(--gold);font-size:14px;margin-bottom:6px}
 /* SCRIPT LIBRARY */
 .script-item{background:var(--navy);border-radius:var(--radius);padding:14px;margin-bottom:10px;position:relative}
@@ -930,14 +930,159 @@ function applyDurMask(inp){
 function backupData(){Promise.all([dbGetAll('days'),dbGet('goals','goals'),dbGet('meta','streak')]).then(function(r){var p={version:2,exported:new Date().toISOString(),days:r[0],goals:r[1],streak:r[2]};var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(p,null,2)],{type:'application/json'}));a.download='PinnaclePlanner_'+dateKey()+'.json';a.click();showToast('Backup saved');});}
 function restoreBackup(event){var file=event.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(e){try{var p=JSON.parse(e.target.result);var promises=[];(p.days||[]).forEach(function(d){promises.push(dbPut('days',d));});if(p.goals)promises.push(dbPut('goals',p.goals));Promise.all(promises).then(function(){showToast('Restored '+(p.days||[]).length+' days');loadDay();loadGoals();updateStreak();});}catch(err){showToast('Error: invalid file');}};reader.readAsText(file);event.target.value='';}
 // ── REMINDERS ──
-var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone,reminderTimers=[],remindersOn=false;
-(function(){if(!('serviceWorker' in navigator))return;var sw="self.addEventListener('install',function(e){self.skipWaiting();});self.addEventListener('activate',function(e){e.waitUntil(clients.claim());});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(function(){});})();
-function parseStartTime(t,ap){if(!t)return null;var m=t.trim().match(/^(\d{1,2}):(\d{2})$/);if(!m)return null;var h=parseInt(m[1]),min=parseInt(m[2]),mer=(ap||'AM').trim().toUpperCase();if(mer==='PM'&&h!==12)h+=12;if(mer==='AM'&&h===12)h=0;var d=new Date();d.setHours(h,min,0,0);return d;}
-function scheduleNotif(name,date,pri){var delay=date-new Date();if(delay<0)return;var label=pri==='high'?'🔴 ':pri==='med'?'🟡 ':'';reminderTimers.push(setTimeout(function(){if(Notification.permission==='granted')new Notification('Pinnacle Planner',{body:label+name,silent:false});},delay));}
-function scheduleAll(){reminderTimers.forEach(clearTimeout);reminderTimers=[];var count=0;document.querySelectorAll('#repeat-list .plan-row, #planned-list .plan-row').forEach(function(row){if(row.querySelector('.col-done')&&row.querySelector('.col-done').checked)return;var t=row.querySelector('.time-inp'),ap=row.querySelector('.ampm-inp'),n=row.querySelector('.name-inp'),p=row.querySelector('.pri-sel');if(!t||!n||!n.value.trim())return;var d=parseStartTime(t.value,ap?ap.value:'AM');if(d){scheduleNotif(n.value.trim(),d,p?p.value:'med');count++;}});return count;}
-function updateBellState(on){remindersOn=on;var btn=document.getElementById('bell-btn');if(btn){btn.textContent=on?'🔔':'🔕';btn.style.color=on?'var(--gold)':'';};}
-function toggleReminders(){if(remindersOn){reminderTimers.forEach(clearTimeout);reminderTimers=[];updateBellState(false);showToast('Reminders cleared');return;}if(!('Notification' in window)){showToast('Not supported');return;}if(isIOS&&!isStandalone){showInstallBanner();return;}if(Notification.permission==='granted'){var n=scheduleAll();updateBellState(true);showToast(n+' reminder'+(n!==1?'s':'')+' set');}else if(Notification.permission==='denied'){showToast('Blocked — enable in Settings');}else{Notification.requestPermission().then(function(p){if(p==='granted'){var n=scheduleAll();updateBellState(true);showToast(n+' reminder'+(n!==1?'s':'')+' set');}else showToast('Permission not granted');});}}
-function showInstallBanner(){if(document.getElementById('install-banner'))return;var b=document.createElement('div');b.id='install-banner';b.className='install-banner';b.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h3>Enable Reminders on iPhone</h3><button onclick="document.getElementById(\'install-banner\').remove()" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer">✕</button></div><p>Add to Home Screen first: <strong style="color:var(--gold2)">Safari → Share ⎙ → Add to Home Screen</strong><br>Then open from Home Screen and tap 🔕 again.</p>';document.body.appendChild(b);}
+var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+function checkStandalone(){return !!(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone);}
+var remindersOn=false;
+var reminderPollInterval=null;
+var firedReminders={};  // key: "YYYY-MM-DD|HH:MM|name" → true, to avoid double-firing
+
+function parseStartTime(t,ap){
+  if(!t)return null;
+  var m=t.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if(!m)return null;
+  var h=parseInt(m[1]),min=parseInt(m[2]),mer=(ap||'AM').trim().toUpperCase();
+  if(mer==='PM'&&h!==12)h+=12;
+  if(mer==='AM'&&h===12)h=0;
+  return {h:h,min:min};
+}
+
+function playAlertTone(){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    function beep(freq,start,dur){
+      var o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=freq;o.type='sine';
+      g.gain.setValueAtTime(0,ctx.currentTime+start);
+      g.gain.linearRampToValueAtTime(0.35,ctx.currentTime+start+0.02);
+      g.gain.linearRampToValueAtTime(0,ctx.currentTime+start+dur);
+      o.start(ctx.currentTime+start);o.stop(ctx.currentTime+start+dur+0.05);
+    }
+    beep(880,0,0.12);beep(1100,0.18,0.12);beep(880,0.36,0.22);
+  }catch(e){}
+}
+
+function showReminderBanner(name,pri){
+  var existing=document.getElementById('reminder-banner');
+  if(existing)existing.remove();
+  var label=pri==='high'?'🔴 ':pri==='med'?'🟡 ':'🔵 ';
+  var b=document.createElement('div');
+  b.id='reminder-banner';
+  b.style.cssText='position:fixed;top:60px;left:0;right:0;max-width:600px;margin:0 auto;background:var(--navy);border-top:2px solid var(--gold);border-bottom:2px solid var(--gold);padding:12px 16px;z-index:9998;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:slideDown 0.3s ease';
+  b.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">⏰</span><div><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:2px">Reminder</div><div style="font-size:14px;color:#fff;font-weight:500">'+label+(name||'').replace(/</g,'&lt;')+'</div></div></div><button onclick="document.getElementById(\'reminder-banner\').remove()" style="background:none;border:1px solid rgba(201,168,76,0.4);border-radius:6px;color:var(--gold);font-size:11px;font-weight:700;padding:5px 10px;cursor:pointer;flex-shrink:0;font-family:\'DM Sans\',sans-serif">Dismiss</button>';
+  if(!document.getElementById('remind-anim-style')){var st=document.createElement('style');st.id='remind-anim-style';st.textContent='@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}';document.head.appendChild(st);}
+  document.body.appendChild(b);
+  setTimeout(function(){if(b.parentNode)b.remove();},12000);
+}
+
+function pollReminders(){
+  var todayKey=dateKey(new Date());
+  dbGet('days',todayKey).then(function(data){
+    if(!data)return;
+    var now=new Date();
+    var nowH=now.getHours(),nowMin=now.getMinutes();
+    var rows=[].concat(data.repeat||[],data.planned||[]);
+    rows.forEach(function(r){
+      if(r.done||!r.name||!r.name.trim()||!r.start)return;
+      var pt=parseStartTime(r.start,r.ampm||'AM');
+      if(!pt)return;
+      // Fire if we are within the same minute as the scheduled time
+      if(pt.h===nowH&&pt.min===nowMin){
+        var fkey=todayKey+'|'+pt.h+':'+pt.min+'|'+r.name;
+        if(firedReminders[fkey])return;
+        firedReminders[fkey]=true;
+        playAlertTone();
+        showReminderBanner(r.name,r.priority||'med');
+        if(Notification.permission==='granted'){
+          var label=r.priority==='high'?'🔴 ':r.priority==='med'?'🟡 ':'🔵 ';
+          try{new Notification('Pinnacle Planner',{body:label+r.name,silent:false});}catch(e){}
+        }
+      }
+    });
+    // Clear fired keys from previous days
+    Object.keys(firedReminders).forEach(function(k){if(k.indexOf(todayKey)<0)delete firedReminders[k];});
+  });
+}
+
+function countScheduledToday(){
+  return new Promise(function(resolve){
+    dbGet('days',dateKey(new Date())).then(function(data){
+      if(!data){resolve(0);return;}
+      var now=new Date();
+      var rows=[].concat(data.repeat||[],data.planned||[]);
+      var count=0;
+      rows.forEach(function(r){
+        if(r.done||!r.name||!r.name.trim()||!r.start)return;
+        var pt=parseStartTime(r.start,r.ampm||'AM');
+        if(!pt)return;
+        var t=new Date();t.setHours(pt.h,pt.min,0,0);
+        if(t>=now)count++;
+      });
+      resolve(count);
+    });
+  });
+}
+
+function updateBellState(on){
+  remindersOn=on;
+  var btn=document.getElementById('bell-btn');
+  if(btn){btn.textContent=on?'🔔':'🔕';btn.style.color=on?'var(--gold)':'';}
+}
+
+function startReminderPoll(){
+  if(reminderPollInterval)clearInterval(reminderPollInterval);
+  pollReminders(); // immediate first check
+  // Align to the next minute boundary, then poll every 60 s
+  var now=new Date();
+  var msToNextMin=(60-now.getSeconds())*1000-now.getMilliseconds();
+  setTimeout(function(){
+    pollReminders();
+    reminderPollInterval=setInterval(pollReminders,60000);
+  },msToNextMin);
+}
+
+function stopReminderPoll(){
+  if(reminderPollInterval){clearInterval(reminderPollInterval);reminderPollInterval=null;}
+}
+
+function toggleReminders(){
+  if(remindersOn){
+    stopReminderPoll();
+    updateBellState(false);
+    showToast('Reminders off');
+    return;
+  }
+  if(isIOS&&!checkStandalone()){showInstallBanner();return;}
+  function activate(){
+    countScheduledToday().then(function(n){
+      startReminderPoll();
+      updateBellState(true);
+      showToast(n+' reminder'+(n!==1?'s':'')+' armed for today');
+    });
+  }
+  if(!('Notification' in window)){
+    // No notification API — still use audio+banner polling
+    activate();
+    return;
+  }
+  if(Notification.permission==='granted'){
+    activate();
+  } else if(Notification.permission==='denied'){
+    // Still run audio+banner even if push denied
+    activate();
+    showToast('Push blocked — audio alerts still active');
+  } else {
+    Notification.requestPermission().then(function(p){activate();});
+  }
+}
+
+function showInstallBanner(){
+  if(document.getElementById('install-banner'))return;
+  var b=document.createElement('div');
+  b.id='install-banner';b.className='install-banner';
+  b.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h3>Enable Reminders on iPhone</h3><button onclick="document.getElementById(\'install-banner\').remove()" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer">✕</button></div><p>Add to Home Screen first: <strong style="color:var(--gold2)">Safari → Share ⎙ → Add to Home Screen</strong><br>Then open from Home Screen and tap 🔕 again.</p>';
+  document.body.appendChild(b);
+}
 // ── FAB ──
 var fabOpen=false;
 function toggleFab(){fabOpen=!fabOpen;document.getElementById('fab-menu').classList.toggle('open',fabOpen);document.getElementById('fab').textContent=fabOpen?'✕':'+';}
