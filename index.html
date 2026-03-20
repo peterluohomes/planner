@@ -594,8 +594,8 @@ function sortPlanList(listId){
   rows.sort(function(a,b){
     var ta=a.querySelector('.time-inp'),aa=a.querySelector('.ampm-inp');
     var tb=b.querySelector('.time-inp'),ab=b.querySelector('.ampm-inp');
-    var ma=parseTimeToMinutes(ta?ta.value:'',aa?aa.value:'AM');
-    var mb=parseTimeToMinutes(tb?tb.value:'',ab?ab.value:'AM');
+    var ma=parseTimeToMinutes(ta?ta.value:'',aa?aa.value:'PM');
+    var mb=parseTimeToMinutes(tb?tb.value:'',ab?ab.value:'PM');
     return ma-mb;
   });
   rows.forEach(function(r){list.appendChild(r);});
@@ -664,7 +664,7 @@ function makePlanRow(data, isPlanned){
 
   row.innerHTML='<div class="time-ampm">'
     +'<input class="time-inp" type="text" value="'+(data.start||'')+'" placeholder="09:00" maxlength="5">'
-    +'<input class="ampm-inp" type="text" value="'+(data.ampm||'AM')+'" maxlength="2">'
+    +'<input class="ampm-inp" type="text" value="'+(data.ampm||'PM')+'" maxlength="2">'
     +'</div>'
     +'<input class="dur-inp" type="text" value="'+(data.duration||'')+'" placeholder="HH:MM">'
     +'<input class="name-inp'+(data.done?' done':'')+'" type="text" value="'+(data.name||'').replace(/"/g,'&quot;')+'" placeholder="Activity…">'
@@ -712,7 +712,7 @@ function deletePlanRow(btn){
 function addPlanRow(listId){
   var isPlanned=listId==='planned-list';
   var list=document.getElementById(listId);
-  var row=makePlanRow({ampm:'AM'},isPlanned);
+  var row=makePlanRow({ampm:'PM'},isPlanned);
   list.appendChild(row);
   row.querySelector('.time-inp').focus();
 }
@@ -1022,6 +1022,8 @@ function pollReminders(){
 document.addEventListener('visibilitychange',function(){
   if(!document.hidden&&remindersOn){
     pollReminders();
+    // Re-acquire wake lock if it was released
+    acquireWakeLock();
   }
 });
 // Also catch iOS standalone resume events
@@ -1031,6 +1033,44 @@ window.addEventListener('pageshow',function(){
 window.addEventListener('focus',function(){
   if(remindersOn)pollReminders();
 });
+
+// ── SCREEN WAKE LOCK (keeps screen on so timers keep running) ──
+var wakeLock=null;
+function acquireWakeLock(){
+  if(!('wakeLock' in navigator))return;
+  navigator.wakeLock.request('screen').then(function(lock){
+    wakeLock=lock;
+    wakeLock.addEventListener('release',function(){wakeLock=null;});
+  }).catch(function(){});
+}
+function releaseWakeLock(){
+  if(wakeLock){try{wakeLock.release();wakeLock=null;}catch(e){}}
+}
+
+// ── SILENT AUDIO KEEPALIVE (prevents iOS from suspending the PWA) ──
+var keepAliveAudio=null;
+function startKeepAlive(){
+  if(keepAliveAudio)return;
+  try{
+    // Create a tiny silent audio loop — iOS won't suspend a page playing audio
+    var ctx=getAudioCtx();
+    if(!ctx)return;
+    var buf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate); // 2s silence
+    var src=ctx.createBufferSource();
+    src.buffer=buf;src.loop=true;
+    var gain=ctx.createGain();
+    gain.gain.value=0.001; // virtually silent
+    src.connect(gain);gain.connect(ctx.destination);
+    src.start();
+    keepAliveAudio={source:src,gain:gain};
+  }catch(e){}
+}
+function stopKeepAlive(){
+  if(keepAliveAudio){
+    try{keepAliveAudio.source.stop();}catch(e){}
+    keepAliveAudio=null;
+  }
+}
 
 function countScheduledToday(){
   return new Promise(function(resolve){
@@ -1067,6 +1107,9 @@ function updateBellState(on){
 function startReminderPoll(){
   if(reminderPollInterval)clearTimeout(reminderPollInterval);
   pollReminders(); // immediate first check
+  // Keep screen awake and audio alive so iOS doesn't suspend timers
+  acquireWakeLock();
+  startKeepAlive();
   // Use recursive setTimeout instead of setInterval — more resilient on iOS
   // Aligns each tick to the next minute boundary
   function scheduleNext(){
@@ -1082,6 +1125,8 @@ function startReminderPoll(){
 
 function stopReminderPoll(){
   if(reminderPollInterval){clearTimeout(reminderPollInterval);reminderPollInterval=null;}
+  releaseWakeLock();
+  stopKeepAlive();
 }
 
 function toggleReminders(){
