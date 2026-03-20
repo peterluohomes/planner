@@ -979,50 +979,52 @@ function showReminderBanner(name,pri){
 }
 
 function pollReminders(){
+  var now=new Date();
+  var nowH=now.getHours(),nowMin=now.getMinutes();
   var todayKey=dateKey(new Date());
-  dbGet('days',todayKey).then(function(data){
-    if(!data)return;
-    var now=new Date();
-    var nowH=now.getHours(),nowMin=now.getMinutes();
-    var rows=[].concat(data.repeat||[],data.planned||[]);
-    rows.forEach(function(r){
-      if(r.done||!r.name||!r.name.trim()||!r.start)return;
-      var pt=parseStartTime(r.start,r.ampm||'AM');
-      if(!pt)return;
-      // Fire if we are within the same minute as the scheduled time
-      if(pt.h===nowH&&pt.min===nowMin){
-        var fkey=todayKey+'|'+pt.h+':'+pt.min+'|'+r.name;
-        if(firedReminders[fkey])return;
-        firedReminders[fkey]=true;
-        playAlertTone();
-        showReminderBanner(r.name,r.priority||'med');
-        if(Notification.permission==='granted'){
-          var label=r.priority==='high'?'🔴 ':r.priority==='med'?'🟡 ':'🔵 ';
-          try{new Notification('Pinnacle Planner',{body:label+r.name,silent:false});}catch(e){}
-        }
+  document.querySelectorAll('#repeat-list .plan-row, #planned-list .plan-row').forEach(function(row){
+    var nameEl=row.querySelector('.name-inp');
+    var timeEl=row.querySelector('.time-inp');
+    var ampmEl=row.querySelector('.ampm-inp');
+    var doneEl=row.querySelector('.col-done');
+    var priEl=row.querySelector('.pri-sel');
+    if(!nameEl||!nameEl.value.trim())return;
+    if(doneEl&&doneEl.checked)return;
+    if(!timeEl||!timeEl.value.trim())return;
+    var pt=parseStartTime(timeEl.value,ampmEl?ampmEl.value:'AM');
+    if(!pt)return;
+    if(pt.h===nowH&&pt.min===nowMin){
+      var fkey=todayKey+'|'+pt.h+':'+pt.min+'|'+nameEl.value;
+      if(firedReminders[fkey])return;
+      firedReminders[fkey]=true;
+      playAlertTone();
+      showReminderBanner(nameEl.value,priEl?priEl.value:'med');
+      if(Notification.permission==='granted'){
+        var label=priEl&&priEl.value==='high'?'🔴 ':priEl&&priEl.value==='med'?'🟡 ':'🔵 ';
+        try{new Notification('Pinnacle Planner',{body:label+nameEl.value,silent:false});}catch(e){}
       }
-    });
-    // Clear fired keys from previous days
-    Object.keys(firedReminders).forEach(function(k){if(k.indexOf(todayKey)<0)delete firedReminders[k];});
+    }
   });
 }
 
 function countScheduledToday(){
   return new Promise(function(resolve){
-    dbGet('days',dateKey(new Date())).then(function(data){
-      if(!data){resolve(0);return;}
-      var rows=[].concat(data.repeat||[],data.planned||[]);
-      var count=0,times=[];
-      rows.forEach(function(r){
-        if(r.done||!r.name||!r.name.trim()||!r.start)return;
-        var pt=parseStartTime(r.start,r.ampm||'AM');
-        if(!pt)return;
-        count++;
-        times.push(r.start+(r.ampm||''));
-      });
-      showToast('Found '+count+': '+times.join(', '));
-      resolve(count);
+    var count=0,times=[];
+    document.querySelectorAll('#repeat-list .plan-row, #planned-list .plan-row').forEach(function(row){
+      var nameEl=row.querySelector('.name-inp');
+      var timeEl=row.querySelector('.time-inp');
+      var ampmEl=row.querySelector('.ampm-inp');
+      var doneEl=row.querySelector('.col-done');
+      if(!nameEl||!nameEl.value.trim())return;
+      if(doneEl&&doneEl.checked)return;
+      if(!timeEl||!timeEl.value.trim())return;
+      var pt=parseStartTime(timeEl.value, ampmEl?ampmEl.value:'AM');
+      if(!pt)return;
+      count++;
+      times.push(timeEl.value+(ampmEl?ampmEl.value:''));
     });
+    showToast('Found '+count+': '+(times.join(', ')||'none'));
+    resolve(count);
   });
 }
 
@@ -1057,16 +1059,10 @@ function toggleReminders(){
   }
   if(isIOS&&!checkStandalone()){showInstallBanner();return;}
   function activate(){
-    // Force-flush current DOM state to DB first, then count
-    clearTimeout(saveTimer);
-    _doSaveDay();
-    setTimeout(function(){
-      countScheduledToday().then(function(n){
-        startReminderPoll();
-        updateBellState(true);
-        showToast(n+' activit'+(n!==1?'ies':'y')+' will trigger alerts');
-      });
-    },800);
+    countScheduledToday().then(function(n){
+      startReminderPoll();
+      updateBellState(true);
+    });
   }
   if(!('Notification' in window)){
     // No notification API — still use audio+banner polling
