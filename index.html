@@ -180,9 +180,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .wdr-stars{display:flex;gap:2px}
 .wdr-star{font-size:11px;opacity:0.2}
 .wdr-star.on{opacity:1}
-.wdr-stats{display:flex;gap:10px;flex-wrap:wrap}
-.wdr-stat{font-size:11px;color:var(--muted)}
-.wdr-stat strong{color:var(--navy);font-family:'DM Mono',monospace}
+.wdr-stats{display:flex;gap:6px;flex-wrap:wrap;font-size:10px;color:var(--muted);line-height:1.6}
+.wdr-stat{white-space:nowrap}
+.wdr-stat strong{color:var(--navy);font-family:'DM Mono',monospace;font-size:10px}
 .wdr-eod{font-size:11px;color:var(--muted);margin-top:4px}
 .monthly-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
 .monthly-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
@@ -240,6 +240,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
   </div>
 </header>
 
+<div id="global-date-bar" style="display:none;position:sticky;top:43px;z-index:99;background:var(--cream);border-bottom:1px solid var(--border)">
+  <div class="date-bar" style="padding:8px 14px 0">
+    <div class="date-nav">
+      <button onclick="changeDate(-1)">←</button>
+      <span class="date-label" id="plan-date-label"></span>
+      <button onclick="changeDate(1)">→</button>
+    </div>
+    <button class="today-btn" onclick="goToday()">Today</button>
+  </div>
+  <div style="padding:4px 14px 6px"><div class="week-grid" id="week-grid"></div></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <div class="fab-menu" id="fab-menu">
@@ -281,15 +293,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 
 <!-- PLANNER -->
 <div class="page" id="page-planner">
-  <div class="date-bar">
-    <div class="date-nav">
-      <button onclick="changeDate(-1)">←</button>
-      <span class="date-label" id="plan-date-label"></span>
-      <button onclick="changeDate(1)">→</button>
-    </div>
-    <button class="today-btn" onclick="goToday()">Today</button>
-  </div>
-  <div class="week-grid" id="week-grid"></div>
 
   <div class="card">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -398,10 +401,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 
   <!-- 3. Listings & Deals -->
   <div class="track-section">
-    <div class="track-section-title">Listings & Deals</div>
+    <div class="track-section-title">Listings & Deals <button onclick="recalcCategoryTotals(true)" style="font-size:9px;padding:2px 6px;cursor:pointer">Debug</button></div>
     <div class="track-grid">
-      <div class="track-card"><div class="track-lbl">Listing Presentations</div><div class="track-val" id="tv-presentations">0</div><div class="track-unit">given</div><input class="track-input" type="number" min="0" placeholder="—" oninput="setTrack('presentations',this.value)"></div>
-      <div class="track-card"><div class="track-lbl">Buyer Presentations</div><div class="track-val" id="tv-buyer-presentations">0</div><div class="track-unit">given</div><input class="track-input" type="number" min="0" placeholder="—" oninput="setTrack('buyer-presentations',this.value)"></div>
+      <div class="track-card track-card-computed"><div class="track-lbl">Listing Presentations</div><div class="track-val" id="tv-presentations">0</div><div class="track-unit">auto-calculated</div></div>
+      <div class="track-card track-card-computed"><div class="track-lbl">Buyer Presentations</div><div class="track-val" id="tv-buyer-presentations">0</div><div class="track-unit">auto-calculated</div></div>
       <div class="track-card"><div class="track-lbl">Active Listings</div><div class="track-val" id="tv-listings">0</div><div class="track-unit">active</div><input class="track-input" type="number" min="0" placeholder="—" oninput="setTrack('listings',this.value)"></div>
       <div class="track-card"><div class="track-lbl">Buyer Offer Written</div><div class="track-val" id="tv-buyer-offers">0</div><div class="track-unit">offers</div><input class="track-input" type="number" min="0" placeholder="—" oninput="setTrack('buyer-offers',this.value)"></div>
       <div class="track-card"><div class="track-lbl">Listing Offer Reviewed</div><div class="track-val" id="tv-listing-offers">0</div><div class="track-unit">offers</div><input class="track-input" type="number" min="0" placeholder="—" oninput="setTrack('listing-offers',this.value)"></div>
@@ -473,7 +476,7 @@ function formatDateLabel(d){var isToday=dateKey(d)===dateKey(new Date());return 
 function changeDate(dir){currentDate=new Date(currentDate);currentDate.setDate(currentDate.getDate()+(dir*7));loadDay();}
 function goToday(){currentDate=new Date();loadDay();}
 // ── NAV ──
-function showPage(name,el){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});document.getElementById('page-'+name).classList.add('active');if(el)el.classList.add('active');closeFab();}
+function showPage(name,el){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});document.getElementById('page-'+name).classList.add('active');if(el)el.classList.add('active');var datePages={'planner':1,'diary':1,'tracking':1};document.getElementById('global-date-bar').style.display=datePages[name]?'block':'none';closeFab();}
 // ── GOALS ──
 var TIERS=[{id:'yearly',label:'Yearly',badge:'2026'},{id:'halfyear',label:'Half-Year',badge:'H1'},{id:'quarterly',label:'Quarterly',badge:'Q1'},{id:'monthly',label:'Monthly',badge:'Mar'},{id:'weekly',label:'Weekly',badge:'Wk 12'},{id:'daily',label:'Daily',badge:'Today',highlight:true}];
 function buildGoalTiers(){var c=document.getElementById('goal-tiers');c.innerHTML='';TIERS.forEach(function(tier){var d=document.createElement('div');d.className='tier';d.id='tier-'+tier.id;var ds=tier.highlight?'background:var(--gold);opacity:1':'',ls=tier.highlight?'color:var(--gold)':'';d.innerHTML='<div class="tier-hdr" onclick="toggleTier(this)"><div class="tier-left"><div class="tier-dot" style="'+ds+'"></div><span class="tier-label" style="'+ls+'">'+tier.label+'</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tier-badge">'+tier.badge+'</span><span class="tier-arrow open">▼</span></div></div><div class="tier-body" id="tier-body-'+tier.id+'"><button class="add-btn" onclick="addGoalItem(this,\''+tier.id+'\')">+ add goal</button></div>';c.appendChild(d);});}
@@ -619,23 +622,36 @@ function updateCatColor(sel){
   sel.setAttribute('data-cat',v==='other'?'':v);
 }
 
-function recalcCategoryTotals(){
-  // Count each category from all planned rows
+function recalcCategoryTotals(showDebug){
   var counts={presentations:0,'listing-offers':0,'buyer-presentations':0,showings:0,'buyer-offers':0};
-  document.querySelectorAll('#planned-list .planned-row').forEach(function(row){
+  var rows=document.querySelectorAll('#planned-list .plan-row');
+  var debug='Rows found: '+rows.length+'\n';
+  rows.forEach(function(row,idx){
     var cat=row.querySelector('.cat-sel');
+    var timeEl=row.querySelector('.time-inp');
+    var catVal=cat?cat.value:'NO-CAT-SEL';
+    var timeVal=timeEl?timeEl.value:'NO-TIME-EL';
+    var hasCatSel=!!cat;
+    debug+='Row'+idx+': cat='+catVal+' time='+timeVal+' hasCatSel='+hasCatSel+'\n';
     if(!cat||cat.value==='other')return;
     var key=CAT_TRACK[cat.value];
-    if(key&&counts[key]!==undefined)counts[key]++;
+    debug+='  mapped key='+key+'\n';
+    if(!key||counts[key]===undefined)return;
+    if(key==='presentations'||key==='buyer-presentations'){
+      if(!timeEl||!timeEl.value.trim()){
+        debug+='  SKIPPED (no time)\n';
+        return;
+      }
+    }
+    counts[key]++;
+    debug+='  COUNTED\n';
   });
+  debug+='Final: L-Pres='+counts.presentations+' B-Pres='+counts['buyer-presentations'];
+  if(showDebug)alert(debug);
   Object.keys(counts).forEach(function(k){
     var el=document.getElementById('tv-'+k);
     if(el)el.textContent=counts[k];
-    // also update the input if visible
-    var inp=document.querySelector('[oninput="setTrack(\''+k+'\',this.value)"]');
-    if(inp)inp.value=counts[k]||'';
   });
-  saveDay();
 }
 
 var CAT_OPTIONS=[
@@ -690,29 +706,29 @@ function makePlanRow(data, isPlanned){
 
   // sort list when time changes
   var listId=isPlanned?'planned-list':'repeat-list';
-  row.querySelector('.time-inp').addEventListener('blur',function(){sortPlanList(listId);saveDay();});
-  row.querySelector('.ampm-inp').addEventListener('click',function(){setTimeout(function(){sortPlanList(listId);saveDay();},50);});
+  row.querySelector('.time-inp').addEventListener('blur',function(){sortPlanList(listId);recalcCategoryTotals();saveDay();});
+  row.querySelector('.ampm-inp').addEventListener('click',function(){setTimeout(function(){sortPlanList(listId);recalcCategoryTotals();saveDay();},50);});
 
   var catSel=row.querySelector('.cat-sel');
   if(catSel){
     updateCatColor(catSel);
-    catSel.addEventListener('change',function(){updateCatColor(this);recalcCategoryTotals();});
+    catSel.addEventListener('change',function(){updateCatColor(this);recalcCategoryTotals();saveDay();});
   }
 
   row.querySelector('.col-done').addEventListener('change',function(){
     row.querySelector('.name-inp').classList.toggle('done',this.checked);
-    saveDay();
+    recalcCategoryTotals();saveDay();
   });
   row.querySelectorAll('input,select').forEach(function(el){
-    el.addEventListener('change',function(){if(this.classList.contains('pri-sel'))updatePriColor(this);saveDay();});
-    el.addEventListener('input',saveDay);
+    el.addEventListener('change',function(){if(this.classList.contains('pri-sel'))updatePriColor(this);recalcCategoryTotals();saveDay();});
+    el.addEventListener('input',function(){recalcCategoryTotals();saveDay();});
   });
   return row;
 }
 
 function deletePlanRow(btn){
   btn.closest('.plan-row').remove();
-  recalcCategoryTotals();
+  recalcCategoryTotals();saveDay();
 }
 
 function addPlanRow(listId){
@@ -832,7 +848,10 @@ function loadDay(){
     if(data.affirmation)document.getElementById('field-affirmation').value=data.affirmation;
     if(data.neighbourhood)document.getElementById('field-neighbourhood').value=data.neighbourhood;
     if(data.tracking){
+      // Skip presentations and buyer-presentations — these are auto-calculated
+      var computedKeys={'presentations':1,'buyer-presentations':1};
       Object.keys(data.tracking).forEach(function(k){
+        if(computedKeys[k])return;
         var el=document.getElementById('tv-'+k);
         var inp=document.querySelector('[oninput="setTrack(\''+k+'\',this.value)"]');
         if(el)el.textContent=data.tracking[k]||0;
@@ -878,6 +897,13 @@ function renderWeekly(){
   document.getElementById('review-week-label').textContent=ws.toLocaleDateString('en-CA',{month:'short',day:'numeric'})+' – '+we.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});
   var promises=[];for(var i=0;i<7;i++){var d=new Date(ws);d.setDate(ws.getDate()+i);promises.push(dbGet('days',dateKey(d)));}
   var dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var WEEKLY_METRICS=[
+    {key:'doors',lbl:'Doors'},{key:'calls',lbl:'Calls'},{key:'referrals',lbl:'Ref'},{key:'new-leads',lbl:'Leads'},
+    {key:'followups',lbl:'F/U'},{key:'appts-asked',lbl:'ApptAsk'},{key:'appts-booked',lbl:'ApptBk'},
+    {key:'presentations',lbl:'L-Pres'},{key:'showings',lbl:'Show'},{key:'buyer-presentations',lbl:'B-Pres'},
+    {key:'buyer-offers',lbl:'BuyOff'},{key:'listing-offers',lbl:'OffRev'},
+    {key:'social',lbl:'Social'},{key:'videos',lbl:'Video'}
+  ];
   Promise.all(promises).then(function(results){
     var list=document.getElementById('weekly-day-list');list.innerHTML='';
     for(var i=0;i<7;i++){
@@ -885,10 +911,19 @@ function renderWeekly(){
       var data=results[i];
       var row=document.createElement('div');row.className='wdr'+(data?'':' empty');
       var stars='';for(var s=1;s<=5;s++)stars+='<span class="wdr-star'+(data&&data.energy>=s?' on':'')+'">★</span>';
-      var stats='<div class="wdr-stats"><div class="wdr-stat">No data</div></div>';
-      if(data&&data.tracking){var t=data.tracking;stats='<div class="wdr-stats"><div class="wdr-stat">Doors <strong>'+(t.doors||0)+'</strong></div><div class="wdr-stat">Calls <strong>'+(t.calls||0)+'</strong></div><div class="wdr-stat">Leads <strong>'+(t['new-leads']||0)+'</strong></div><div class="wdr-stat">Appts <strong>'+(t.appts||0)+'</strong></div></div>';}
-      var eod='';if(data&&data.eod){var yes=data.eod.filter(function(a){return a==='yes';}).length,ans=data.eod.filter(function(a){return a!==null;}).length;if(ans>0)eod='<div class="wdr-eod">EOD Score: <strong>'+yes+'/3</strong>'+(data.energy?' · Energy: '+data.energy+'/5':'')+'</div>';}
-      row.innerHTML='<div class="wdr-header"><span class="wdr-date">'+dayNames[d.getDay()]+', '+d.toLocaleDateString('en-CA',{month:'short',day:'numeric'})+'</span><div class="wdr-stars">'+stars+'</div></div>'+stats+eod;
+      var statsHtml='<div class="wdr-stats">';
+      if(data&&data.tracking){
+        var t=data.tracking;
+        WEEKLY_METRICS.forEach(function(m){
+          var v=t[m.key]||0;
+          statsHtml+='<span class="wdr-stat">'+m.lbl+' <strong>'+v+'</strong></span>';
+        });
+      } else {
+        statsHtml+='<span class="wdr-stat">No data</span>';
+      }
+      statsHtml+='</div>';
+      var eod='';if(data&&data.eod){var yes=data.eod.filter(function(a){return a==='yes';}).length,ans=data.eod.filter(function(a){return a!==null;}).length;if(ans>0)eod='<div class="wdr-eod">EOD <strong>'+yes+'/3</strong>'+(data.energy?' · Energy '+data.energy+'/5':'')+'</div>';}
+      row.innerHTML='<div class="wdr-header"><span class="wdr-date">'+dayNames[d.getDay()]+', '+d.toLocaleDateString('en-CA',{month:'short',day:'numeric'})+'</span><div class="wdr-stars">'+stars+'</div></div>'+statsHtml+eod;
       list.appendChild(row);
     }
   });
@@ -899,24 +934,32 @@ function renderMonthly(){
   document.getElementById('review-month-label').textContent=new Date(y,m,1).toLocaleDateString('en-CA',{month:'long',year:'numeric'});
   dbGetAll('days').then(function(allDays){
     var monthDays=allDays.filter(function(d){var dt=new Date(d.date+'T00:00:00');return dt.getFullYear()===y&&dt.getMonth()===m;});
-    var totals={doors:0,calls:0,'new-leads':0,referrals:0,showings:0,followups:0,'appts-booked':0,presentations:0,'buyer-presentations':0,listings:0,'buyer-offers':0,'listing-offers':0,social:0,videos:0,marketing:0};
+    var totals={doors:0,calls:0,referrals:0,'new-leads':0,followups:0,'appts-asked':0,'appts-booked':0,presentations:0,showings:0,'buyer-presentations':0,'buyer-offers':0,'listing-offers':0,social:0,videos:0};
     monthDays.forEach(function(d){if(d.tracking)Object.keys(totals).forEach(function(k){totals[k]+=(d.tracking[k]||0);});});
     var n=monthDays.length||1;
     var metrics=[
       {key:'doors',label:'Doors Knocked',unit:'doors'},
       {key:'calls',label:'Calls Made',unit:'calls'},
-      {key:'new-leads',label:'New Leads',unit:'leads'},
       {key:'referrals',label:'Referrals Asked',unit:'asks'},
-      {key:'showings',label:'Buyer Showings',unit:'showings'},
+      {key:'new-leads',label:'New Leads',unit:'leads'},
+      {key:'followups',label:'Follow-Ups',unit:'contacts'},
+      {key:'appts-asked',label:'Appts Asked',unit:'asked'},
       {key:'appts-booked',label:'Appts Booked',unit:'booked'},
-      {key:'presentations',label:'Listing Presentations',unit:'given'},
-      {key:'buyer-presentations',label:'Buyer Presentations',unit:'given'},
+      {key:'presentations',label:'L-Presentations',unit:'given'},
+      {key:'showings',label:'Showings',unit:'showings'},
+      {key:'buyer-presentations',label:'B-Presentations',unit:'given'},
+      {key:'buyer-offers',label:'Buyer Offers',unit:'offers'},
+      {key:'listing-offers',label:'Offers Reviewed',unit:'offers'},
+      {key:'social',label:'Social Posts',unit:'posts'},
+      {key:'videos',label:'Videos Posted',unit:'videos'},
     ];
     var grid=document.getElementById('monthly-totals');grid.innerHTML='';
+    if(monthDays.length===0){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--faint);font-size:13px">No data for this month yet</div>';return;}
     metrics.forEach(function(metric){var card=document.createElement('div');card.className='monthly-card';card.innerHTML='<div class="monthly-lbl">'+metric.label+'</div><div class="monthly-val">'+totals[metric.key]+'</div><div class="monthly-unit">'+metric.unit+' this month</div>';grid.appendChild(card);});
     var avg=document.getElementById('monthly-averages');avg.innerHTML='';
-    [{key:'doors',label:'Doors/day'},{key:'calls',label:'Calls/day'},{key:'new-leads',label:'Leads/day'},{key:'appts',label:'Appts/day'}].forEach(function(m){var d=document.createElement('div');d.style.cssText='background:var(--cream2);border-radius:6px;padding:8px 10px';d.innerHTML='<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">'+m.label+'</div><div style="font-family:\'DM Mono\',monospace;font-size:18px;font-weight:500;color:var(--navy)">'+(totals[m.key]/n).toFixed(1)+'</div>';avg.appendChild(d);});
-    if(monthDays.length===0){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--faint);font-size:13px">No data for this month yet</div>';}
+    [{key:'doors',label:'Doors/day'},{key:'calls',label:'Calls/day'},{key:'new-leads',label:'Leads/day'},{key:'followups',label:'F/U per day'}].forEach(function(m){var d=document.createElement('div');d.style.cssText='background:var(--cream2);border-radius:6px;padding:8px 10px';d.innerHTML='<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">'+m.label+'</div><div style="font-family:\'DM Mono\',monospace;font-size:18px;font-weight:500;color:var(--navy)">'+(totals[m.key]/n).toFixed(1)+'</div>';avg.appendChild(d);});
+    // Appts booked shown as total/days ratio
+    var apptDiv=document.createElement('div');apptDiv.style.cssText='background:var(--cream2);border-radius:6px;padding:8px 10px';apptDiv.innerHTML='<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">Appts/Days</div><div style="font-family:\'DM Mono\',monospace;font-size:18px;font-weight:500;color:var(--navy)">'+totals['appts-booked']+'/'+n+'</div>';avg.appendChild(apptDiv);
   });
 }
 function loadReview(){reviewWeekOff=0;reviewMonthOff=0;switchReview('weekly');}
