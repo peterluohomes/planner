@@ -63,12 +63,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .field-inp:focus{border-bottom-color:var(--gold)}
 .field-inp::placeholder{color:var(--faint)}
 /* PLAN ROWS */
-.plan-hdr-row{display:grid;grid-template-columns:96px 50px 1fr 40px 20px;gap:4px;padding:0 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--navy);opacity:0.4}
-.plan-row{display:grid;grid-template-columns:96px 50px 1fr 40px 20px;gap:4px;align-items:center;padding:5px 0;border-bottom:1px solid var(--cream2)}
-.plan-row.planned-row{grid-template-columns:96px 50px 1fr 80px 40px 20px 22px}
+.plan-hdr-row{display:grid;grid-template-columns:130px 1fr 40px 20px;gap:4px;padding:0 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--navy);opacity:0.4}
+.plan-row{display:grid;grid-template-columns:130px 1fr 40px 20px;gap:4px;align-items:center;padding:5px 0;border-bottom:1px solid var(--cream2)}
+.plan-row.planned-row{grid-template-columns:130px 1fr 28px 40px 20px 22px}
 .plan-row:last-child{border-bottom:none}
-.plan-hdr-row.planned-hdr{grid-template-columns:96px 50px 1fr 80px 40px 20px 22px}
-.cat-sel{font-size:9px;font-weight:600;background:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 1px;outline:none;cursor:pointer;width:100%;font-family:'DM Sans',sans-serif;-webkit-appearance:auto;appearance:auto;position:relative;z-index:1;color:var(--navy)}
+.plan-hdr-row.planned-hdr{grid-template-columns:130px 1fr 28px 40px 20px 22px}
+.cat-sel{font-size:10px;font-weight:700;background:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 0;outline:none;cursor:pointer;width:100%;font-family:'DM Mono',monospace;-webkit-appearance:auto;appearance:auto;position:relative;z-index:1;color:var(--navy);text-align:center}
 .cat-sel[data-cat="listing"]{background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.4);color:#8a6010}
 .cat-sel[data-cat="review-offer"]{background:rgba(192,57,43,0.07);border-color:rgba(192,57,43,0.3);color:#9a2d20}
 .cat-sel[data-cat="buyer"]{background:rgba(43,108,176,0.08);border-color:rgba(43,108,176,0.3);color:#1a5090}
@@ -76,12 +76,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .cat-sel[data-cat="write-offer"]{background:rgba(120,60,160,0.08);border-color:rgba(120,60,160,0.3);color:#6030a0}
 .row-del-btn{background:none;border:none;color:var(--faint);font-size:14px;cursor:pointer;padding:0;line-height:1;transition:color 0.15s;justify-self:center}
 .row-del-btn:hover{color:#c0392b}
-.time-ampm{display:flex;align-items:center;gap:3px}
+.time-ampm{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
 .time-inp{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:transparent;border:none;border-bottom:1px solid var(--border);outline:none;padding:2px 0;width:36px;letter-spacing:0.5px}
 .time-inp:focus{border-bottom-color:var(--gold);color:var(--text)}
 .ampm-inp{font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:var(--navy);background:var(--cream2);border:1px solid var(--border);border-radius:4px;outline:none;padding:1px 0;width:26px;text-align:center;cursor:pointer;letter-spacing:0.5px;flex-shrink:0;transition:border-color 0.15s}
 .ampm-inp:focus{border-color:var(--gold);background:var(--gold-dim)}
-.dur-sel{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);background:var(--cream);border:1px solid var(--border);border-radius:4px;outline:none;padding:2px 1px;width:100%;cursor:pointer;-webkit-appearance:auto;appearance:auto;font-weight:500}
+.dur-sel{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);background:var(--cream);border:1px solid var(--border);border-radius:4px;outline:none;padding:1px 0;width:46px;cursor:pointer;-webkit-appearance:auto;appearance:auto;font-weight:500;flex-shrink:0}
 .dur-sel:focus{border-color:var(--gold);color:var(--text)}
 .name-inp{font-size:13px;color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);outline:none;padding:2px 0;width:100%;font-family:'DM Sans',sans-serif}
 .name-inp:focus{border-bottom-color:var(--gold)}
@@ -300,14 +300,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 
   <div class="card">
     <div class="card-title">Repeat Activities</div>
-    <div class="plan-hdr-row"><span>Start</span><span>Dur</span><span>Activity</span><span>Pri</span><span></span></div>
+    <div class="plan-hdr-row"><span>Start / Dur</span><span>Activity</span><span>Pri</span><span></span></div>
     <div id="repeat-list"></div>
     <button class="add-btn" style="margin-top:8px" onclick="addPlanRow('repeat-list')">+ add activity</button>
   </div>
 
   <div class="card">
     <div class="card-title">Planned Activities</div>
-    <div class="plan-hdr-row planned-hdr"><span>Start</span><span>Dur</span><span>Activity</span><span>Category</span><span>Pri</span><span></span><span></span></div>
+    <div class="plan-hdr-row planned-hdr"><span>Start / Dur</span><span>Activity</span><span>Cat</span><span>Pri</span><span></span><span></span></div>
     <div id="planned-list"></div>
     <button class="add-btn" style="margin-top:8px" onclick="addPlanRow('planned-list')">+ add activity</button>
   </div>
@@ -639,12 +639,12 @@ function recalcCategoryTotals(){
 }
 
 var CAT_OPTIONS=[
-  {v:'other',   l:'Others'},
-  {v:'listing', l:'Listing Presentation'},
-  {v:'review-offer', l:'Review Offer'},
-  {v:'buyer',   l:'Buyer Presentation'},
-  {v:'showing', l:'Showing'},
-  {v:'write-offer',  l:'Write Offer'},
+  {v:'other',        s:'O', l:'O-Others'},
+  {v:'listing',      s:'L', l:'L-Listing Presentation'},
+  {v:'review-offer', s:'R', l:'R-Review Offer'},
+  {v:'buyer',        s:'B', l:'B-Buyer Presentation'},
+  {v:'showing',      s:'S', l:'S-Showing'},
+  {v:'write-offer',  s:'W', l:'W-Write Offer'},
 ];
 
 function makePlanRow(data, isPlanned){
@@ -672,8 +672,8 @@ function makePlanRow(data, isPlanned){
   row.innerHTML='<div class="time-ampm">'
     +'<input class="time-inp" type="text" value="'+(data.start||'')+'" placeholder="09:00" maxlength="5">'
     +'<input class="ampm-inp" type="text" value="'+(data.ampm||'PM')+'" maxlength="2">'
-    +'</div>'
     +durHtml
+    +'</div>'
     +'<input class="name-inp'+(data.done?' done':'')+'" type="text" value="'+(data.name||'').replace(/"/g,'&quot;')+'" placeholder="Activity…">'
     +catHtml
     +'<select class="pri-sel">'
@@ -998,7 +998,7 @@ function pollReminders(){
   var now=new Date();
   var nowH=now.getHours(),nowMin=now.getMinutes();
   var todayKey=dateKey(new Date());
-  document.querySelectorAll('#repeat-list .plan-row, #planned-list .plan-row').forEach(function(row){
+  document.querySelectorAll('#planned-list .plan-row').forEach(function(row){
     var nameEl=row.querySelector('.name-inp');
     var timeEl=row.querySelector('.time-inp');
     var ampmEl=row.querySelector('.ampm-inp');
@@ -1080,11 +1080,9 @@ function stopKeepAlive(){
 
 function countScheduledToday(){
   return new Promise(function(resolve){
-    var repeatRows=document.querySelectorAll('#repeat-list .plan-row');
     var plannedRows=document.querySelectorAll('#planned-list .plan-row');
-    var allRows=document.querySelectorAll('#repeat-list .plan-row, #planned-list .plan-row');
     var count=0,times=[],parseFails=[];
-    allRows.forEach(function(row){
+    plannedRows.forEach(function(row){
       var nameEl=row.querySelector('.name-inp');
       var timeEl=row.querySelector('.time-inp');
       var ampmEl=row.querySelector('.ampm-inp');
@@ -1185,7 +1183,7 @@ function exportToIOSReminders(){
   var today=new Date();
   var todayStr=today.getFullYear()+String(today.getMonth()+1).padStart(2,'0')+String(today.getDate()).padStart(2,'0');
   var items=[];
-  document.querySelectorAll('#repeat-list .plan-row, #planned-list .plan-row').forEach(function(row){
+  document.querySelectorAll('#planned-list .plan-row').forEach(function(row){
     var nameEl=row.querySelector('.name-inp');
     var timeEl=row.querySelector('.time-inp');
     var ampmEl=row.querySelector('.ampm-inp');
