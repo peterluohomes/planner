@@ -81,8 +81,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .time-inp:focus{border-bottom-color:var(--gold);color:var(--text)}
 .ampm-inp{font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:var(--navy);background:var(--cream2);border:1px solid var(--border);border-radius:4px;outline:none;padding:1px 0;width:26px;text-align:center;cursor:pointer;letter-spacing:0.5px;flex-shrink:0;transition:border-color 0.15s}
 .ampm-inp:focus{border-color:var(--gold);background:var(--gold-dim)}
-.dur-inp{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:transparent;border:none;border-bottom:1px solid var(--border);outline:none;padding:2px 0;width:100%;letter-spacing:1px}
-.dur-inp:focus{border-bottom-color:var(--gold);color:var(--text)}
+.dur-sel{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);background:var(--cream);border:1px solid var(--border);border-radius:4px;outline:none;padding:2px 1px;width:100%;cursor:pointer;-webkit-appearance:auto;appearance:auto;font-weight:500}
+.dur-sel:focus{border-color:var(--gold);color:var(--text)}
 .name-inp{font-size:13px;color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);outline:none;padding:2px 0;width:100%;font-family:'DM Sans',sans-serif}
 .name-inp:focus{border-bottom-color:var(--gold)}
 .name-inp.done{text-decoration:line-through;color:var(--faint)}
@@ -663,11 +663,17 @@ function makePlanRow(data, isPlanned){
 
   var delHtml=isPlanned?'<button class="row-del-btn" onclick="deletePlanRow(this)" title="Remove">✕</button>':'<span></span>';
 
+  var durVal=data.duration||'00:15';
+  var DUR_OPTIONS=['00:05','00:10','00:15','00:30','00:45','01:00','02:00','03:00'];
+  var durHtml='<select class="dur-sel">';
+  DUR_OPTIONS.forEach(function(d){durHtml+='<option value="'+d+'"'+(durVal===d?' selected':'')+'>'+d+'</option>';});
+  durHtml+='</select>';
+
   row.innerHTML='<div class="time-ampm">'
     +'<input class="time-inp" type="text" value="'+(data.start||'')+'" placeholder="09:00" maxlength="5">'
     +'<input class="ampm-inp" type="text" value="'+(data.ampm||'PM')+'" maxlength="2">'
     +'</div>'
-    +'<input class="dur-inp" type="text" value="'+(data.duration||'')+'" placeholder="HH:MM">'
+    +durHtml
     +'<input class="name-inp'+(data.done?' done':'')+'" type="text" value="'+(data.name||'').replace(/"/g,'&quot;')+'" placeholder="Activity…">'
     +catHtml
     +'<select class="pri-sel">'
@@ -680,7 +686,6 @@ function makePlanRow(data, isPlanned){
 
   applyTimeMask(row.querySelector('.time-inp'));
   applyAmpmMask(row.querySelector('.ampm-inp'));
-  applyDurMask(row.querySelector('.dur-inp'));
   updatePriColor(row.querySelector('.pri-sel'));
 
   // sort list when time changes
@@ -772,7 +777,7 @@ function collectRows(listId,hasTimes){
     if(hasTimes){
       obj.start=(row.querySelector('.time-inp')||{}).value||'';
       obj.ampm=(row.querySelector('.ampm-inp')||{}).value||'AM';
-      obj.duration=(row.querySelector('.dur-inp')||{}).value||'';
+      obj.duration=(row.querySelector('.dur-sel')||{}).value||'00:15';
     }
     if(isPlanned){
       var catEl=row.querySelector('.cat-sel');
@@ -922,7 +927,7 @@ function applyTimeMask(inp){
   inp.addEventListener('blur',function(){var d=this.value.replace(/\D/g,'');if(!d)return;if(d.length===1)d='0'+d+'00';else if(d.length===2)d=d+'00';else if(d.length===3)d='0'+d;d=d.slice(0,4);var h=parseInt(d.slice(0,2)),m=parseInt(d.slice(2));if(h<1)h=1;if(h>12)h=12;if(m>59)m=59;this.value=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');saveDay();});
 }
 function applyAmpmMask(inp){
-  inp.addEventListener('keydown',function(e){if(['Backspace','Delete','Tab'].indexOf(e.key)>=0)return;if(/^[aApP]$/.test(e.key)){e.preventDefault();this.value=e.key.toUpperCase()==='A'?'AM':'PM';var next=this.closest('.plan-row').querySelector('.dur-inp');if(next)next.focus();saveDay();return;}e.preventDefault();});
+  inp.addEventListener('keydown',function(e){if(['Backspace','Delete','Tab'].indexOf(e.key)>=0)return;if(/^[aApP]$/.test(e.key)){e.preventDefault();this.value=e.key.toUpperCase()==='A'?'AM':'PM';var next=this.closest('.plan-row').querySelector('.dur-sel');if(next)next.focus();saveDay();return;}e.preventDefault();});
   inp.addEventListener('click',function(){this.value=this.value==='AM'?'PM':'AM';saveDay();});
 }
 function applyDurMask(inp){
@@ -1186,7 +1191,7 @@ function exportToIOSReminders(){
     var ampmEl=row.querySelector('.ampm-inp');
     var doneEl=row.querySelector('.col-done');
     var priEl=row.querySelector('.pri-sel');
-    var durEl=row.querySelector('.dur-inp');
+    var durEl=row.querySelector('.dur-sel');
     if(!nameEl||!nameEl.value.trim())return;
     if(doneEl&&doneEl.checked)return;
     if(!timeEl||!timeEl.value.trim())return;
@@ -1196,7 +1201,7 @@ function exportToIOSReminders(){
     if(pt.h<today.getHours()||(pt.h===today.getHours()&&pt.min<=today.getMinutes()))return;
     var pri=priEl?priEl.value:'med';
     // Parse duration (default 30 min)
-    var durMin=30;
+    var durMin=15;
     if(durEl&&durEl.value){
       var dp=durEl.value.match(/(\d+):(\d+)/);
       if(dp)durMin=parseInt(dp[1])*60+parseInt(dp[2]);
