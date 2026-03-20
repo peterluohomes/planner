@@ -1180,8 +1180,11 @@ function showInstallBanner(){
 }
 // ── EXPORT TO iOS CALENDAR/REMINDERS ──
 function exportToIOSReminders(){
-  var today=new Date();
-  var todayStr=today.getFullYear()+String(today.getMonth()+1).padStart(2,'0')+String(today.getDate()).padStart(2,'0');
+  var now=new Date();
+  // Use the currently selected planner date, not just today
+  var planDate=currentDate;
+  var planDateStr=planDate.getFullYear()+String(planDate.getMonth()+1).padStart(2,'0')+String(planDate.getDate()).padStart(2,'0');
+  var isToday=dateKey(planDate)===dateKey(now);
   var items=[];
   document.querySelectorAll('#planned-list .plan-row').forEach(function(row){
     var nameEl=row.querySelector('.name-inp');
@@ -1195,10 +1198,9 @@ function exportToIOSReminders(){
     if(!timeEl||!timeEl.value.trim())return;
     var pt=parseStartTime(timeEl.value,ampmEl?ampmEl.value:'PM');
     if(!pt)return;
-    // Skip activities already in the past
-    if(pt.h<today.getHours()||(pt.h===today.getHours()&&pt.min<=today.getMinutes()))return;
+    // Only skip past activities if viewing today's planner
+    if(isToday&&(pt.h<now.getHours()||(pt.h===now.getHours()&&pt.min<=now.getMinutes())))return;
     var pri=priEl?priEl.value:'med';
-    // Parse duration (default 30 min)
     var durMin=15;
     if(durEl&&durEl.value){
       var dp=durEl.value.match(/(\d+):(\d+)/);
@@ -1207,7 +1209,7 @@ function exportToIOSReminders(){
     items.push({name:nameEl.value.trim(),h:pt.h,min:pt.min,dur:durMin,pri:pri});
   });
   if(!items.length){
-    showToast('No upcoming timed activities to export');
+    showToast('No timed activities to export');
     return;
   }
   // Build .ics file with VALARM (native iOS alert)
@@ -1215,15 +1217,15 @@ function exportToIOSReminders(){
   items.forEach(function(item,i){
     var startH=String(item.h).padStart(2,'0');
     var startM=String(item.min).padStart(2,'0');
-    var endDate=new Date(today.getFullYear(),today.getMonth(),today.getDate(),item.h,item.min+item.dur);
+    var endDate=new Date(planDate.getFullYear(),planDate.getMonth(),planDate.getDate(),item.h,item.min+item.dur);
     var endH=String(endDate.getHours()).padStart(2,'0');
     var endM=String(endDate.getMinutes()).padStart(2,'0');
     var endDay=endDate.getFullYear()+String(endDate.getMonth()+1).padStart(2,'0')+String(endDate.getDate()).padStart(2,'0');
     var priLabel=item.pri==='high'?'🔴 ':item.pri==='med'?'🟡 ':'🔵 ';
     cal.push('BEGIN:VEVENT');
-    cal.push('UID:pinnacle-'+todayStr+'-'+i+'@peterluo.homes');
-    cal.push('DTSTAMP:'+todayStr+'T'+startH+startM+'00');
-    cal.push('DTSTART:'+todayStr+'T'+startH+startM+'00');
+    cal.push('UID:pinnacle-'+planDateStr+'-'+i+'@peterluo.homes');
+    cal.push('DTSTAMP:'+planDateStr+'T'+startH+startM+'00');
+    cal.push('DTSTART:'+planDateStr+'T'+startH+startM+'00');
     cal.push('DTEND:'+endDay+'T'+endH+endM+'00');
     cal.push('SUMMARY:'+priLabel+item.name);
     cal.push('DESCRIPTION:Pinnacle Planner Activity');
@@ -1242,7 +1244,8 @@ function exportToIOSReminders(){
   a.download='PinnacleReminders.ics';
   a.click();
   setTimeout(function(){URL.revokeObjectURL(url);},1000);
-  showToast('Adding '+items.length+' event'+(items.length>1?'s':'')+' to Calendar…');
+  var dateLabel=planDate.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
+  showToast(items.length+' event'+(items.length>1?'s':'')+' for '+dateLabel+' → Calendar');
 }
 
 // ── FAB ──
