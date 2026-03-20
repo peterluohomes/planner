@@ -17,7 +17,7 @@
 :root{--navy:#1a2b4a;--navy2:#243560;--gold:#c9a84c;--gold2:#e0c070;--gold-dim:rgba(201,168,76,0.15);--cream:#faf6ee;--cream2:#f0e8d5;--border:#ddd3bc;--text:#2c2c2c;--muted:#888;--faint:#bbb;--surface:#fff;--radius:8px;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth}
-body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;max-width:600px;margin:0 auto;padding-bottom:92px;overscroll-behavior-y:none}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;max-width:600px;margin:0 auto;padding-bottom:100px;overscroll-behavior-y:none}
 .app-header{background:var(--navy);border-bottom:3px solid var(--gold);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .brand h1{font-family:'Playfair Display',serif;font-size:16px;color:var(--gold)}
 .brand p{font-size:9px;color:#aaa;letter-spacing:2px;text-transform:uppercase;margin-top:1px}
@@ -191,19 +191,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .monthly-val{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:var(--navy);line-height:1}
 .monthly-unit{font-size:9px;color:var(--faint);margin-top:2px}
 /* TOAST */
-.toast{position:fixed;bottom:102px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);border:1px solid var(--gold);color:var(--gold);font-size:12px;font-weight:500;padding:8px 18px;border-radius:20px;opacity:0;transition:all 0.3s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);border:1px solid var(--gold);color:var(--gold);font-size:12px;font-weight:500;padding:8px 18px;border-radius:20px;opacity:0;transition:all 0.3s;pointer-events:none;z-index:999;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 /* FAB */
-.fab{position:fixed;bottom:84px;right:16px;width:46px;height:46px;border-radius:50%;background:var(--navy);border:2px solid var(--gold);color:var(--gold);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(26,43,74,0.3);z-index:200;transition:all 0.2s;line-height:1}
+.fab{position:fixed;bottom:92px;right:16px;width:46px;height:46px;border-radius:50%;background:var(--navy);border:2px solid var(--gold);color:var(--gold);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(26,43,74,0.3);z-index:200;transition:all 0.2s;line-height:1}
 .fab:hover{transform:scale(1.08)}
-.fab-menu{position:fixed;bottom:138px;right:16px;display:flex;flex-direction:column;gap:8px;z-index:200;opacity:0;pointer-events:none;transition:all 0.2s;transform:translateY(10px)}
+.fab-menu{position:fixed;bottom:146px;right:16px;display:flex;flex-direction:column;gap:8px;z-index:200;opacity:0;pointer-events:none;transition:all 0.2s;transform:translateY(10px)}
 .fab-menu.open{opacity:1;pointer-events:all;transform:translateY(0)}
 .fab-item{display:flex;align-items:center;gap:8px;justify-content:flex-end}
 .fab-label{background:var(--navy);color:var(--cream);font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;white-space:nowrap;letter-spacing:0.5px}
 .fab-btn{width:34px;height:34px;border-radius:50%;background:var(--navy);border:1px solid var(--gold);color:var(--gold);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 /* BOTTOM NAV */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:600px;margin:0 auto;background:var(--navy);border-top:2px solid var(--gold);display:flex;z-index:100}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:13px 2px 15px;cursor:pointer;color:#777;font-size:7.5px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;gap:3px;transition:color 0.2s;user-select:none;border:none;background:none;font-family:'DM Sans',sans-serif}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:17px 2px 19px;cursor:pointer;color:#777;font-size:7.5px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;gap:3px;transition:color 0.2s;user-select:none;border:none;background:none;font-family:'DM Sans',sans-serif}
 .nav-item .icon{font-size:17px;line-height:1}
 .nav-item.active{color:var(--gold)}
 .nav-item:hover{color:var(--gold2)}
@@ -230,7 +230,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 <body>
 
 <header class="app-header">
-  <div class="brand"><h1>Pinnacle Planner</h1><p>Peter Luo · RE/MAX</p></div>
+  <div class="brand"><h1>Planner</h1></div>
   <div class="header-right">
     <div class="streak-badge" id="streak-badge">🔥 0 days</div>
     <button class="hdr-btn gold" id="bell-btn" onclick="toggleReminders()">🔕</button>
