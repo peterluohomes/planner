@@ -416,8 +416,8 @@
   /* ── PLAN ROWS ── */
   .plan-header-row {
     display: grid;
-    grid-template-columns: 68px 58px 1fr 36px 22px;
-    gap: 6px;
+    grid-template-columns: 96px 52px 1fr 34px 20px;
+    gap: 4px;
     padding: 0 0 6px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 6px;
@@ -431,16 +431,53 @@
 
   .plan-row {
     display: grid;
-    grid-template-columns: 68px 58px 1fr 36px 22px;
-    gap: 6px;
+    grid-template-columns: 96px 52px 1fr 34px 20px;
+    gap: 4px;
     align-items: center;
     padding: 5px 0;
     border-bottom: 1px solid var(--border);
   }
 
-  .plan-row:last-child { border-bottom: none; }
+  .time-ampm {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
 
-  .time-inp, .dur-inp {
+  .time-inp {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    outline: none;
+    padding: 2px 0;
+    width: 38px;
+    letter-spacing: 0.5px;
+  }
+  .time-inp:focus { border-bottom-color: var(--gold); color: var(--text); }
+
+  .ampm-inp {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--navy);
+    background: var(--cream-dark);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    outline: none;
+    padding: 1px 0;
+    width: 26px;
+    text-align: center;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    transition: border-color 0.2s, background 0.15s;
+  }
+  .ampm-inp:focus { border-color: var(--gold); background: rgba(201,168,76,0.08); }
+
+  .dur-inp {
     font-family: 'DM Mono', monospace;
     font-size: 11px;
     color: var(--text-dim);
@@ -450,10 +487,11 @@
     outline: none;
     padding: 2px 0;
     width: 100%;
+    letter-spacing: 1px;
   }
-  .dur-inp { letter-spacing: 1px; }
+  .dur-inp:focus { border-bottom-color: var(--gold); color: var(--text); }
 
-  .time-inp:focus, .dur-inp:focus { border-bottom-color: var(--gold); color: var(--text); }
+  .plan-row:last-child { border-bottom: none; }
 
   .name-inp {
     font-size: 13px;
@@ -685,29 +723,29 @@
     <div class="card">
       <div class="card-title">Repeat Activities</div>
       <div class="plan-header-row">
-        <span class="col-time">Start</span>
-        <span class="col-dur">HH:MM</span>
-        <span class="col-name">Activity</span>
-        <span class="col-pri">Pri</span>
-        <span class="col-done"></span>
+        <span>Start</span>
+        <span>HH:MM</span>
+        <span>Activity</span>
+        <span>Pri</span>
+        <span></span>
       </div>
       <div id="repeat-list">
         <div class="plan-row">
-          <input class="col-time time-inp" type="text" value="6:00 am">
+          <div class="time-ampm"><input class="time-inp" type="text" value="06:00"><input class="ampm-inp" type="text" value="AM" maxlength="2"></div>
           <input class="col-dur dur-inp" type="text" value="00:20">
           <input class="col-name name-inp" type="text" value="Meditation">
           <select class="col-pri pri-sel"><option value="high" selected>H</option><option value="med">M</option><option value="low">L</option></select>
           <input class="col-done" type="checkbox" onchange="strikeRow(this)">
         </div>
         <div class="plan-row">
-          <input class="col-time time-inp" type="text" value="6:30 am">
+          <div class="time-ampm"><input class="time-inp" type="text" value="06:30"><input class="ampm-inp" type="text" value="AM" maxlength="2"></div>
           <input class="col-dur dur-inp" type="text" value="00:30">
           <input class="col-name name-inp" type="text" value="Morning walk">
           <select class="col-pri pri-sel"><option value="high" selected>H</option><option value="med">M</option><option value="low">L</option></select>
           <input class="col-done" type="checkbox" onchange="strikeRow(this)">
         </div>
         <div class="plan-row">
-          <input class="col-time time-inp" type="text" value="7:30 am">
+          <div class="time-ampm"><input class="time-inp" type="text" value="07:30"><input class="ampm-inp" type="text" value="AM" maxlength="2"></div>
           <input class="col-dur dur-inp" type="text" value="00:30">
           <input class="col-name name-inp" type="text" value="Script practice">
           <select class="col-pri pri-sel"><option value="high" selected>H</option><option value="med">M</option><option value="low">L</option></select>
@@ -721,22 +759,22 @@
     <div class="card">
       <div class="card-title">Planned Activities</div>
       <div class="plan-header-row">
-        <span class="col-time">Start</span>
-        <span class="col-dur">HH:MM</span>
-        <span class="col-name">Activity</span>
-        <span class="col-pri">Pri</span>
-        <span class="col-done"></span>
+        <span>Start</span>
+        <span>HH:MM</span>
+        <span>Activity</span>
+        <span>Pri</span>
+        <span></span>
       </div>
       <div id="planned-list">
         <div class="plan-row">
-          <input class="col-time time-inp" type="text" value="10:00 am">
+          <div class="time-ampm"><input class="time-inp" type="text" value="10:00"><input class="ampm-inp" type="text" value="AM" maxlength="2"></div>
           <input class="col-dur dur-inp" type="text" value="01:00">
           <input class="col-name name-inp" type="text" value="Buyer showing — Yonge St">
           <select class="col-pri pri-sel"><option value="high" selected>H</option><option value="med">M</option><option value="low">L</option></select>
           <input class="col-done" type="checkbox" onchange="strikeRow(this)">
         </div>
         <div class="plan-row">
-          <input class="col-time time-inp" type="text" value="2:00 pm">
+          <div class="time-ampm"><input class="time-inp" type="text" value="02:00"><input class="ampm-inp" type="text" value="PM" maxlength="2"></div>
           <input class="col-dur dur-inp" type="text" value="00:45">
           <input class="col-name name-inp" type="text" value="Listing consultation">
           <select class="col-pri pri-sel"><option value="high">H</option><option value="med" selected>M</option><option value="low">L</option></select>
@@ -954,21 +992,81 @@
     });
   }
 
+  // ── TIME MASK (numeric only, 01:00–12:59)
+  function applyTimeMask(inp) {
+    inp.setAttribute('maxlength', '5');
+    inp.setAttribute('placeholder', '9:00');
+    inp.addEventListener('keydown', function(e) {
+      var allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'];
+      if (allowed.indexOf(e.key) >= 0) return;
+      if (/^\d$/.test(e.key)) return;
+      e.preventDefault();
+    });
+    inp.addEventListener('input', function() {
+      var digits = this.value.replace(/\D/g, '').slice(0, 4);
+      if (!digits) { this.value = ''; return; }
+      if (digits.length <= 2) {
+        this.value = digits;
+      } else {
+        this.value = digits.slice(0, digits.length - 2) + ':' + digits.slice(-2);
+      }
+    });
+    inp.addEventListener('blur', function() {
+      var digits = this.value.replace(/\D/g, '');
+      if (!digits) return;
+      if (digits.length === 1) digits = '0' + digits + '00';
+      else if (digits.length === 2) digits = digits + '00';
+      else if (digits.length === 3) digits = '0' + digits;
+      digits = digits.slice(0, 4);
+      var h = parseInt(digits.slice(0, 2));
+      var m = parseInt(digits.slice(2));
+      if (h < 1) h = 1;
+      if (h > 12) h = 12;
+      if (m > 59) m = 59;
+      this.value = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    });
+  }
+
+  // ── AM/PM FIELD
+  function applyAmpmMask(inp) {
+    inp.addEventListener('keydown', function(e) {
+      var allowed = ['Backspace','Delete','Tab'];
+      if (allowed.indexOf(e.key) >= 0) return;
+      if (/^[aApP]$/.test(e.key)) {
+        e.preventDefault();
+        this.value = e.key.toUpperCase() === 'A' ? 'AM' : 'PM';
+        this.dispatchEvent(new Event('change'));
+        var next = this.closest('.plan-row').querySelector('.dur-inp');
+        if (next) next.focus();
+        return;
+      }
+      e.preventDefault();
+    });
+    inp.addEventListener('click', function() {
+      this.value = this.value === 'AM' ? 'PM' : 'AM';
+      this.dispatchEvent(new Event('change'));
+    });
+  }
+
   document.querySelectorAll('.dur-inp').forEach(applyDurMask);
+  document.querySelectorAll('.time-inp').forEach(applyTimeMask);
+  document.querySelectorAll('.ampm-inp').forEach(applyAmpmMask);
 
   // ── ADD PLAN ROW
   function addPlanRow(listId) {
     var list = document.getElementById(listId);
     var row = document.createElement('div');
     row.className = 'plan-row';
-    row.innerHTML = '<input class="col-time time-inp" type="text" placeholder="9:00 am">'
+    row.innerHTML = '<div class="time-ampm"><input class="time-inp" type="text" placeholder="09:00"><input class="ampm-inp" type="text" value="AM" maxlength="2"></div>'
       + '<input class="col-dur dur-inp" type="text" placeholder="HH:MM">'
       + '<input class="col-name name-inp" type="text" placeholder="Activity name...">'
       + '<select class="col-pri pri-sel"><option value="high">H</option><option value="med" selected>M</option><option value="low">L</option></select>'
       + '<input class="col-done" type="checkbox" onchange="strikeRow(this)">';
     list.appendChild(row);
     applyDurMask(row.querySelector('.dur-inp'));
-    row.querySelector('.name-inp').focus();
+    applyTimeMask(row.querySelector('.time-inp'));
+    applyAmpmMask(row.querySelector('.ampm-inp'));
+    row.querySelector('.time-inp').focus();
   }
 
   // ── ADD TASK
@@ -1027,11 +1125,11 @@
     });
     var repeat = [];
     document.querySelectorAll('#repeat-list .plan-row').forEach(function(row) {
-      repeat.push({ start: row.querySelector('.time-inp').value, duration: row.querySelector('.dur-inp').value, name: row.querySelector('.name-inp').value, priority: row.querySelector('.pri-sel').value, done: row.querySelector('.col-done').checked });
+      repeat.push({ start: row.querySelector('.time-inp').value, ampm: row.querySelector('.ampm-inp') ? row.querySelector('.ampm-inp').value : 'AM', duration: row.querySelector('.dur-inp').value, name: row.querySelector('.name-inp').value, priority: row.querySelector('.pri-sel').value, done: row.querySelector('.col-done').checked });
     });
     var planned = [];
     document.querySelectorAll('#planned-list .plan-row').forEach(function(row) {
-      planned.push({ start: row.querySelector('.time-inp').value, duration: row.querySelector('.dur-inp').value, name: row.querySelector('.name-inp').value, priority: row.querySelector('.pri-sel').value, done: row.querySelector('.col-done').checked });
+      planned.push({ start: row.querySelector('.time-inp').value, ampm: row.querySelector('.ampm-inp') ? row.querySelector('.ampm-inp').value : 'AM', duration: row.querySelector('.dur-inp').value, name: row.querySelector('.name-inp').value, priority: row.querySelector('.pri-sel').value, done: row.querySelector('.col-done').checked });
     });
     var tasks = [];
     document.querySelectorAll('#task-list .plan-row').forEach(function(row) {
@@ -1083,10 +1181,10 @@
   function makeRow(r, hasTimes) {
     var row = document.createElement('div');
     row.className = 'plan-row';
-    if (!hasTimes) row.style.gridTemplateColumns = '1fr 36px 22px';
+    if (!hasTimes) row.style.gridTemplateColumns = '1fr 34px 20px';
     var html = '';
     if (hasTimes) {
-      html += '<input class="col-time time-inp" type="text" value="' + (r.start||'') + '">';
+      html += '<div class="time-ampm"><input class="time-inp" type="text" value="' + (r.start||'') + '"><input class="ampm-inp" type="text" value="' + (r.ampm||'AM') + '" maxlength="2"></div>';
       html += '<input class="col-dur dur-inp" type="text" value="' + (r.duration||'') + '">';
     }
     html += '<input class="col-name name-inp' + (r.done?' done':'') + '" type="text" value="' + (r.name||'').replace(/"/g,'&quot;') + '">';
@@ -1104,12 +1202,24 @@
     if (data.repeat) {
       var rl = document.getElementById('repeat-list');
       rl.innerHTML = '';
-      data.repeat.forEach(function(r) { var row = makeRow(r, true); rl.appendChild(row); applyDurMask(row.querySelector('.dur-inp')); });
+      data.repeat.forEach(function(r) {
+        var row = makeRow(r, true);
+        rl.appendChild(row);
+        applyDurMask(row.querySelector('.dur-inp'));
+        applyTimeMask(row.querySelector('.time-inp'));
+        applyAmpmMask(row.querySelector('.ampm-inp'));
+      });
     }
     if (data.planned) {
       var pl = document.getElementById('planned-list');
       pl.innerHTML = '';
-      data.planned.forEach(function(r) { var row = makeRow(r, true); pl.appendChild(row); applyDurMask(row.querySelector('.dur-inp')); });
+      data.planned.forEach(function(r) {
+        var row = makeRow(r, true);
+        pl.appendChild(row);
+        applyDurMask(row.querySelector('.dur-inp'));
+        applyTimeMask(row.querySelector('.time-inp'));
+        applyAmpmMask(row.querySelector('.ampm-inp'));
+      });
     }
     if (data.tasks) {
       var tl = document.getElementById('task-list');
@@ -1319,15 +1429,15 @@
     navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(function(){});
   })();
 
-  // Parse start time string into today's Date
-  function parseStartTime(str) {
-    if (!str) return null;
-    str = str.trim().toLowerCase();
-    var m = str.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/);
+  // Parse start time from separate time + ampm inputs into today's Date
+  function parseStartTime(timeStr, ampmStr) {
+    if (!timeStr) return null;
+    var m = timeStr.trim().match(/^(\d{1,2}):(\d{2})$/);
     if (!m) return null;
-    var h = parseInt(m[1]), min = parseInt(m[2]), meridiem = m[3];
-    if (meridiem === 'pm' && h !== 12) h += 12;
-    if (meridiem === 'am' && h === 12) h = 0;
+    var h = parseInt(m[1]), min = parseInt(m[2]);
+    var meridiem = (ampmStr || 'AM').trim().toUpperCase();
+    if (meridiem === 'PM' && h !== 12) h += 12;
+    if (meridiem === 'AM' && h === 12) h = 0;
     var d = new Date();
     d.setHours(h, min, 0, 0);
     return d;
@@ -1362,10 +1472,11 @@
       var doneEl = row.querySelector('.col-done');
       if (doneEl && doneEl.checked) return;
       var timeInp = row.querySelector('.time-inp');
+      var ampmInp = row.querySelector('.ampm-inp');
       var nameInp = row.querySelector('.name-inp');
       var priSel  = row.querySelector('.pri-sel');
       if (!timeInp || !nameInp) return;
-      var startDate = parseStartTime(timeInp.value);
+      var startDate = parseStartTime(timeInp.value, ampmInp ? ampmInp.value : 'AM');
       var name = nameInp.value.trim();
       if (!startDate || !name) return;
       scheduleNotif(name, startDate, priSel ? priSel.value : 'med');
