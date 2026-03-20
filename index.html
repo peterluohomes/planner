@@ -1012,13 +1012,15 @@ function countScheduledToday(){
     dbGet('days',dateKey(new Date())).then(function(data){
       if(!data){resolve(0);return;}
       var rows=[].concat(data.repeat||[],data.planned||[]);
-      var count=0;
+      var count=0,times=[];
       rows.forEach(function(r){
         if(r.done||!r.name||!r.name.trim()||!r.start)return;
         var pt=parseStartTime(r.start,r.ampm||'AM');
         if(!pt)return;
         count++;
+        times.push(r.start+(r.ampm||''));
       });
+      showToast('Found '+count+': '+times.join(', '));
       resolve(count);
     });
   });
