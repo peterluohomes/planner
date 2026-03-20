@@ -939,6 +939,15 @@ var remindersOn=false;
 var reminderPollInterval=null;
 var firedReminders={};  // key: "YYYY-MM-DD|HH:MM|name" → true, to avoid double-firing
 
+// Pre-warmed AudioContext (iOS requires creation from user gesture)
+var _audioCtx=null;
+function getAudioCtx(){
+  if(!_audioCtx){try{_audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+  // iOS puts AudioContext in 'suspended' state until a user gesture resumes it
+  if(_audioCtx&&_audioCtx.state==='suspended'){try{_audioCtx.resume();}catch(e){}}
+  return _audioCtx;
+}
+
 function parseStartTime(t,ap){
   if(!t)return null;
   var m=t.trim().match(/^(\d{1,2}):(\d{2})$/);
@@ -951,7 +960,8 @@ function parseStartTime(t,ap){
 
 function playAlertTone(){
   try{
-    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var ctx=getAudioCtx();
+    if(!ctx)return;
     function beep(freq,start,dur){
       var o=ctx.createOscillator(),g=ctx.createGain();
       o.connect(g);g.connect(ctx.destination);
@@ -999,31 +1009,51 @@ function pollReminders(){
       firedReminders[fkey]=true;
       playAlertTone();
       showReminderBanner(nameEl.value,priEl?priEl.value:'med');
-      if(Notification.permission==='granted'){
-        var label=priEl&&priEl.value==='high'?'🔴 ':priEl&&priEl.value==='med'?'🟡 ':'🔵 ';
-        try{new Notification('Pinnacle Planner',{body:label+nameEl.value,silent:false});}catch(e){}
+      // Guard: only use Notification API if it exists on this platform
+      if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+        var nlabel=priEl&&priEl.value==='high'?'🔴 ':priEl&&priEl.value==='med'?'🟡 ':'🔵 ';
+        try{new Notification('Pinnacle Planner',{body:nlabel+nameEl.value,silent:false});}catch(e){}
       }
     }
   });
 }
 
+// ── iOS CATCH-UP: when user returns to the app, fire any missed reminders ──
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden&&remindersOn){
+    pollReminders();
+  }
+});
+// Also catch iOS standalone resume events
+window.addEventListener('pageshow',function(){
+  if(remindersOn)pollReminders();
+});
+window.addEventListener('focus',function(){
+  if(remindersOn)pollReminders();
+});
+
 function countScheduledToday(){
   return new Promise(function(resolve){
-    var count=0,times=[];
-    document.querySelectorAll('#repeat-list .plan-row, #planned-list .plan-row').forEach(function(row){
+    var repeatRows=document.querySelectorAll('#repeat-list .plan-row');
+    var plannedRows=document.querySelectorAll('#planned-list .plan-row');
+    var allRows=document.querySelectorAll('#repeat-list .plan-row, #planned-list .plan-row');
+    var count=0,times=[],parseFails=[];
+    allRows.forEach(function(row){
       var nameEl=row.querySelector('.name-inp');
       var timeEl=row.querySelector('.time-inp');
       var ampmEl=row.querySelector('.ampm-inp');
       var doneEl=row.querySelector('.col-done');
-      if(!nameEl||!nameEl.value.trim())return;
+      var name=nameEl?nameEl.value.trim():'';
+      var time=timeEl?timeEl.value.trim():'';
+      var ampm=ampmEl?ampmEl.value.trim():'AM';
+      if(!name||!time){return;}
       if(doneEl&&doneEl.checked)return;
-      if(!timeEl||!timeEl.value.trim())return;
-      var pt=parseStartTime(timeEl.value, ampmEl?ampmEl.value:'AM');
-      if(!pt)return;
+      var pt=parseStartTime(time,ampm);
+      if(!pt){parseFails.push(time+' '+ampm);return;}
       count++;
-      times.push(timeEl.value+(ampmEl?ampmEl.value:''));
+      times.push(time+ampm);
     });
-    showToast('Found '+count+': '+(times.join(', ')||'none'));
+    showToast('Reminders: '+count+' timed activit'+(count===1?'y':'ies'));
     resolve(count);
   });
 }
@@ -1035,19 +1065,23 @@ function updateBellState(on){
 }
 
 function startReminderPoll(){
-  if(reminderPollInterval)clearInterval(reminderPollInterval);
+  if(reminderPollInterval)clearTimeout(reminderPollInterval);
   pollReminders(); // immediate first check
-  // Align to the next minute boundary, then poll every 60 s
-  var now=new Date();
-  var msToNextMin=(60-now.getSeconds())*1000-now.getMilliseconds();
-  setTimeout(function(){
-    pollReminders();
-    reminderPollInterval=setInterval(pollReminders,60000);
-  },msToNextMin);
+  // Use recursive setTimeout instead of setInterval — more resilient on iOS
+  // Aligns each tick to the next minute boundary
+  function scheduleNext(){
+    var now=new Date();
+    var msToNextMin=(60-now.getSeconds())*1000-now.getMilliseconds()+200; // +200ms buffer
+    reminderPollInterval=setTimeout(function(){
+      pollReminders();
+      scheduleNext();
+    },msToNextMin);
+  }
+  scheduleNext();
 }
 
 function stopReminderPoll(){
-  if(reminderPollInterval){clearInterval(reminderPollInterval);reminderPollInterval=null;}
+  if(reminderPollInterval){clearTimeout(reminderPollInterval);reminderPollInterval=null;}
 }
 
 function toggleReminders(){
@@ -1057,12 +1091,20 @@ function toggleReminders(){
     showToast('Reminders off');
     return;
   }
-  if(isIOS&&!checkStandalone()){showInstallBanner();return;}
+  // Pre-warm AudioContext on this user-gesture (iOS requires it)
+  getAudioCtx();
   function activate(){
     countScheduledToday().then(function(n){
       startReminderPoll();
       updateBellState(true);
     });
+  }
+  // On iOS in Safari (not standalone), still allow banner+audio reminders
+  // but show a tip about Add to Home Screen for best experience
+  if(isIOS&&!checkStandalone()){
+    activate();
+    showToast('Tip: Add to Home Screen for best reminder experience');
+    return;
   }
   if(!('Notification' in window)){
     // No notification API — still use audio+banner polling
