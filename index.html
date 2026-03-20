@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Daily Dashboard — Peter Luo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #1a2b4a;
+    --navy-mid: #243560;
+    --navy-light: #2d4070;
+    --gold: #c9a84c;
+    --gold-light: #e0c070;
+    --gold-dim: rgba(201,168,76,0.15);
+    --cream: #faf6ee;
+    --cream-dark: #f0e8d5;
+    --text: #2c2c2c;
+    --text-dim: #555;
+    --text-faint: #999;
+    --border: #ddd3bc;
+    --border-strong: #c9a84c;
+    --surface: #ffffff;
+    --surface-hover: rgba(201,168,76,0.07);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* ── TOP BAR ── */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--navy);
+    border-bottom: 3px solid var(--gold);
+  }
+
+  .brand-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.3px;
+  }
+
+  .brand-sub {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-top: 1px;
+  }
+
+  .top-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #aaa;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── TAB BAR ── */
+  .tab-bar {
+    display: flex;
+    position: sticky;
+    top: 57px;
+    z-index: 99;
+    background: var(--cream-dark);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 13px 4px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .tab:hover { color: var(--text-dim); background: var(--surface-hover); }
+
+  .tab.active {
+    color: var(--navy);
+    border-bottom-color: var(--gold);
+    background: var(--cream);
+    font-weight: 600;
+  }
+
+  /* ── CONTENT ── */
+  .content { padding: 18px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── GOALS PAGE ── */
+  .goal-tiers { display: flex; flex-direction: column; gap: 8px; }
+
+  .tier {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .tier-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--cream-dark);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .tier-header:hover { background: rgba(201,168,76,0.12); }
+
+  .tier-left { display: flex; align-items: center; gap: 10px; }
+
+  .tier-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .tier-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+
+  .tier-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+
+  .tier-arrow {
+    font-size: 10px;
+    color: var(--text-faint);
+    transition: transform 0.2s;
+  }
+
+  .tier-arrow.open { transform: rotate(180deg); }
+
+  .tier-body {
+    padding: 10px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    border-top: 1px solid var(--border);
+  }
+
+  .goal-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .goal-item input[type=checkbox] {
+    width: 16px; height: 16px;
+    accent-color: var(--gold);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .goal-item input[type=text] {
+    flex: 1;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    padding: 3px 0;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .goal-item input[type=text]:focus { border-bottom-color: var(--gold-light); }
+  .goal-item input[type=text]::placeholder { color: var(--text-faint); }
+
+  .add-btn {
+    font-size: 12px;
+    color: var(--text-faint);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 3px 0;
+    text-align: left;
+    font-family: 'DM Sans', sans-serif;
+    transition: color 0.15s;
+  }
+  .add-btn:hover { color: var(--gold); }
+
+  /* ── DATE BAR ── */
+  .date-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .date-nav { display: flex; align-items: center; gap: 10px; }
+
+  .date-nav button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 13px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: all 0.15s;
+  }
+
+  .date-nav button:hover { background: var(--surface-hover); border-color: var(--border-strong); color: var(--navy); }
+
+  .date-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--navy);
+  }
+
+  .today-btn {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--gold);
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .today-btn:hover { background: var(--gold-dim); }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .card-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--navy);
+    opacity: 0.5;
+    margin-bottom: 12px;
+  }
+
+  /* ── TASK ITEMS ── */
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .task-item:last-of-type { border-bottom: none; }
+
+  .task-item input[type=checkbox] {
+    width: 16px; height: 16px;
+    accent-color: var(--gold);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .task-item input[type=checkbox]:checked + span {
+    text-decoration: line-through;
+    color: var(--text-faint);
+  }
+
+  .task-item span { flex: 1; }
+
+  .priority {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .p-high { background: rgba(220,80,50,0.10); color: #c0403a; border: 1px solid rgba(220,80,50,0.25); }
+  .p-med  { background: rgba(201,168,76,0.15); color: #a07020; border: 1px solid rgba(201,168,76,0.35); }
+  .p-low  { background: rgba(60,140,80,0.10); color: #3a8050; border: 1px solid rgba(60,140,80,0.25); }
+
+  /* ── NOTES ── */
+  .notes-area {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    resize: none;
+    outline: none;
+    min-height: 90px;
+    line-height: 1.7;
+  }
+
+  .notes-area::placeholder { color: var(--text-faint); }
+
+  /* ── TRACKING ── */
+  .track-section { margin-bottom: 20px; }
+
+  .track-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 10px;
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--gold-dim);
+  }
+
+  .track-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .track-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 10px;
+  }
+
+  .track-label {
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: var(--text-faint);
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .track-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--navy);
+    line-height: 1.1;
+  }
+
+  .track-unit {
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+    margin-bottom: 7px;
+  }
+
+  .track-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--cream);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    padding: 5px 7px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .track-input:focus { border-color: var(--gold); }
+  .track-input::placeholder { color: var(--text-faint); }
+
+  /* ── DIVIDER ── */
+  .section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 18px 0;
+  }
+
+  /* ── PLAN ROWS ── */
+  .plan-header-row {
+    display: grid;
+    grid-template-columns: 68px 58px 1fr 36px 22px;
+    gap: 6px;
+    padding: 0 0 6px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--navy);
+    opacity: 0.45;
+  }
+
+  .plan-row {
+    display: grid;
+    grid-template-columns: 68px 58px 1fr 36px 22px;
+    gap: 6px;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .plan-row:last-child { border-bottom: none; }
+
+  .time-inp, .dur-inp {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    outline: none;
+    padding: 2px 0;
+    width: 100%;
+  }
+  .dur-inp { letter-spacing: 1px; }
+
+  .time-inp:focus, .dur-inp:focus { border-bottom-color: var(--gold); color: var(--text); }
+
+  .name-inp {
+    font-size: 13px;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    outline: none;
+    padding: 2px 0;
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .name-inp:focus { border-bottom-color: var(--gold); }
+  .name-inp.done { text-decoration: line-through; color: var(--text-faint); }
+
+  .pri-sel {
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--navy);
+    padding: 2px 2px;
+    outline: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .col-done { justify-self: center; width: 15px; height: 15px; accent-color: var(--gold); cursor: pointer; }
+
+  /* ── DIARY ── */
+  .diary-section { padding: 4px 0 8px; }
+
+  .diary-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+    opacity: 0.7;
+  }
+
+  .diary-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 10px 0 14px;
+  }
+
+  /* ── ACTION BAR ── */
+  .action-bar {
+    display: flex;
+    gap: 8px;
+    padding: 10px 18px;
+    background: var(--cream-dark);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .action-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--surface);
+    color: var(--text-dim);
+  }
+
+  .action-btn:hover { background: var(--surface-hover); border-color: var(--gold); color: var(--navy); }
+  .action-btn.gold { color: var(--navy); background: var(--gold-dim); border-color: rgba(201,168,76,0.5); font-weight: 700; }
+  .action-btn.gold:hover { background: rgba(201,168,76,0.25); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--navy);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    padding: 9px 20px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+  }
+
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--cream-dark); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div>
+    <div class="brand-name">Pinnacle Daily</div>
+    <div class="brand-sub">Peter Luo · RE/MAX</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px">
+    <span id="top-date" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-faint);margin-right:4px"></span>
+    <button class="action-btn" onclick="saveJSON()" style="color:var(--gold);">Save</button>
+    <button class="action-btn" onclick="document.getElementById('load-input').click()">Load</button>
+    <button class="action-btn" onclick="savePDF()">PDF</button>
+    <input type="file" id="load-input" accept=".json" style="display:none" onchange="loadJSON(event)">
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <div class="tab active" onclick="show('goals',this)">Goals</div>
+  <div class="tab" onclick="show('plan',this)">Planner</div>
+  <div class="tab" onclick="show('track',this)">Tracking</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- ── GOALS PAGE ── -->
+  <div class="page active" id="page-goals">
+    <div class="goal-tiers">
+
+      <div class="tier">
+        <div class="tier-header" onclick="toggleTier(this)">
+          <div class="tier-left"><div class="tier-dot"></div><span class="tier-label">Yearly</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span class="tier-badge">2026</span><span class="tier-arrow open">▼</span></div>
+        </div>
+        <div class="tier-body">
+          <div class="goal-item"><input type="checkbox"><input type="text" placeholder="Add a yearly goal…" value="Close 18 transactions"></div>
+          <div class="goal-item"><input type="checkbox"><input type="text" placeholder="Add a yearly goal…" value="FRI designation renewal"></div>
+          <button class="add-btn" onclick="addGoal(this)">+ add goal</button>
+        </div>
+      </div>
+
+      <div class="tier">
+        <div class="tier-header" onclick="toggleTier(this)">
+          <div class="tier-left"><div class="tier-dot"></div><span class="tier-label">Half-Year</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span class="tier-badge">H1</span><span class="tier-arrow open">▼</span></div>
+        </div>
+        <div class="tier-body">
+          <div class="goal-item"><input type="checkbox"><input type="text" placeholder="Add a half-year goal…" value="9 transactions by June"></div>
+          <div class="goal-item"><input type="checkbox"><input type="text" placeholder="Add a half-year goal…" value="Build 500-contact database"></div>
+          <button class="add-btn" onclick="addGoal(this)">+ add goal</button>
+        </div>
+      </div>
+
+      <div class="tier">
+        <div class="tier-header" onclick="toggleTier(this)">
+          <div class="tier-left"><div class="tier-dot"></div><span class="tier-label">Quarterly</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span class="tier-badge">Q1</span><span class="tier-arrow open">▼</span></div>
+        </div>
+        <div class="tier-body">
+          <div class="goal-item"><input type="checkbox"><input type="text" placeholder="Add a quarterly goal…" value="4 signed listings"></div>
+          <button class="add-btn" onclick="addGoal(this)">+ add goal</button>
+        </div>
+      </div>
+
+      <div class="tier">
+        <div class="tier-header" onclick="toggleTier(this)">
+          <div class="tier-left"><div class="tier-dot"></div><span class="tier-label">Monthly</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span class="tier-badge">Mar</span><span class="tier-arrow open">▼</span></div>
+        </div>
+        <div class="tier-body">
+          <div class="goal-item"><input type="checkbox"><input type="text" placeholder="Add a monthly goal…" value="Door knock 200 doors"></div>
+          <div class="goal-item"><input type="checkbox"><input type="text" placeholder="Add a monthly goal…" value="Send March newsletter"></div>
+          <button class="add-btn" onclick="addGoal(this)">+ add goal</button>
+        </div>
+      </div>
+
+      <div class="tier">
+        <div class="tier-header" onclick="toggleTier(this)">
+          <div class="tier-left"><div class="tier-dot"></div><span class="tier-label">Weekly</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span class="tier-badge">Wk 12</span><span class="tier-arrow open">▼</span></div>
+        </div>
+        <div class="tier-body">
+          <div class="goal-item"><input type="checkbox"><input type="text" placeholder="Add a weekly goal…" value="50 door knocks"></div>
+          <div class="goal-item"><input type="checkbox"><input type="text" placeholder="Add a weekly goal…" value="Follow up 10 leads"></div>
+          <button class="add-btn" onclick="addGoal(this)">+ add goal</button>
+        </div>
+      </div>
+
+      <div class="tier">
+        <div class="tier-header" onclick="toggleTier(this)">
+          <div class="tier-left"><div class="tier-dot" style="background:var(--gold);opacity:1"></div><span class="tier-label" style="color:var(--gold)">Daily</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span class="tier-badge">Today</span><span class="tier-arrow open">▼</span></div>
+        </div>
+        <div class="tier-body">
+          <div class="goal-item"><input type="checkbox"><input type="text" placeholder="Add a daily goal…" value="10 door knocks"></div>
+          <div class="goal-item"><input type="checkbox"><input type="text" placeholder="HH:MM"></div>
+          <button class="add-btn" onclick="addGoal(this)">+ add goal</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── PLAN PAGE ── -->
+  <div class="page" id="page-plan">
+    <div class="date-bar">
+      <div class="date-nav">
+        <button onclick="changeDate(-1)">&#8592;</button>
+        <span class="date-label" id="plan-date"></span>
+        <button onclick="changeDate(1)">&#8594;</button>
+      </div>
+      <button class="today-btn" onclick="goToday()">Today</button>
+    </div>
+
+    <!-- SECTION 1: REPEAT ACTIVITIES -->
+    <div class="card">
+      <div class="card-title">Repeat Activities</div>
+      <div class="plan-header-row">
+        <span class="col-time">Start</span>
+        <span class="col-dur">HH:MM</span>
+        <span class="col-name">Activity</span>
+        <span class="col-pri">Pri</span>
+        <span class="col-done"></span>
+      </div>
+      <div id="repeat-list">
+        <div class="plan-row">
+          <input class="col-time time-inp" type="text" value="6:00 am">
+          <input class="col-dur dur-inp" type="text" value="00:20">
+          <input class="col-name name-inp" type="text" value="Meditation">
+          <select class="col-pri pri-sel"><option value="high" selected>H</option><option value="med">M</option><option value="low">L</option></select>
+          <input class="col-done" type="checkbox" onchange="strikeRow(this)">
+        </div>
+        <div class="plan-row">
+          <input class="col-time time-inp" type="text" value="6:30 am">
+          <input class="col-dur dur-inp" type="text" value="00:30">
+          <input class="col-name name-inp" type="text" value="Morning walk">
+          <select class="col-pri pri-sel"><option value="high" selected>H</option><option value="med">M</option><option value="low">L</option></select>
+          <input class="col-done" type="checkbox" onchange="strikeRow(this)">
+        </div>
+        <div class="plan-row">
+          <input class="col-time time-inp" type="text" value="7:30 am">
+          <input class="col-dur dur-inp" type="text" value="00:30">
+          <input class="col-name name-inp" type="text" value="Script practice">
+          <select class="col-pri pri-sel"><option value="high" selected>H</option><option value="med">M</option><option value="low">L</option></select>
+          <input class="col-done" type="checkbox" onchange="strikeRow(this)">
+        </div>
+      </div>
+      <button class="add-btn" style="margin-top:10px" onclick="addPlanRow('repeat-list')">+ add activity</button>
+    </div>
+
+    <!-- SECTION 2: PLANNED ACTIVITIES -->
+    <div class="card">
+      <div class="card-title">Planned Activities</div>
+      <div class="plan-header-row">
+        <span class="col-time">Start</span>
+        <span class="col-dur">HH:MM</span>
+        <span class="col-name">Activity</span>
+        <span class="col-pri">Pri</span>
+        <span class="col-done"></span>
+      </div>
+      <div id="planned-list">
+        <div class="plan-row">
+          <input class="col-time time-inp" type="text" value="10:00 am">
+          <input class="col-dur dur-inp" type="text" value="01:00">
+          <input class="col-name name-inp" type="text" value="Buyer showing — Yonge St">
+          <select class="col-pri pri-sel"><option value="high" selected>H</option><option value="med">M</option><option value="low">L</option></select>
+          <input class="col-done" type="checkbox" onchange="strikeRow(this)">
+        </div>
+        <div class="plan-row">
+          <input class="col-time time-inp" type="text" value="2:00 pm">
+          <input class="col-dur dur-inp" type="text" value="00:45">
+          <input class="col-name name-inp" type="text" value="Listing consultation">
+          <select class="col-pri pri-sel"><option value="high">H</option><option value="med" selected>M</option><option value="low">L</option></select>
+          <input class="col-done" type="checkbox" onchange="strikeRow(this)">
+        </div>
+      </div>
+      <button class="add-btn" style="margin-top:10px" onclick="addPlanRow('planned-list')">+ add activity</button>
+    </div>
+
+    <!-- SECTION 3: TASKS -->
+    <div class="card">
+      <div class="card-title">Tasks</div>
+      <div class="plan-header-row" style="grid-template-columns:1fr 36px 22px">
+        <span class="col-name">Task</span>
+        <span class="col-pri">Pri</span>
+        <span class="col-done"></span>
+      </div>
+      <div id="task-list">
+        <div class="plan-row" style="grid-template-columns:1fr 36px 22px">
+          <input class="col-name name-inp" type="text" value="Door knock — Bayview block">
+          <select class="col-pri pri-sel"><option value="high" selected>H</option><option value="med">M</option><option value="low">L</option></select>
+          <input class="col-done" type="checkbox" onchange="strikeRow(this)">
+        </div>
+        <div class="plan-row" style="grid-template-columns:1fr 36px 22px">
+          <input class="col-name name-inp" type="text" value="Follow up 5 warm leads">
+          <select class="col-pri pri-sel"><option value="high">H</option><option value="med" selected>M</option><option value="low">L</option></select>
+          <input class="col-done" type="checkbox" onchange="strikeRow(this)">
+        </div>
+        <div class="plan-row" style="grid-template-columns:1fr 36px 22px">
+          <input class="col-name name-inp" type="text" value="Update CRM notes">
+          <select class="col-pri pri-sel"><option value="high">H</option><option value="med">M</option><option value="low" selected>L</option></select>
+          <input class="col-done" type="checkbox" onchange="strikeRow(this)">
+        </div>
+      </div>
+      <button class="add-btn" style="margin-top:10px" onclick="addTask()">+ add task</button>
+    </div>
+
+    <!-- SECTION 4: DAILY DIARY -->
+    <div class="card">
+      <div class="card-title">Daily Diary</div>
+      <div class="diary-section">
+        <div class="diary-label">Business</div>
+        <textarea class="notes-area" placeholder="Business reflections, wins, challenges, follow-ups…"></textarea>
+      </div>
+      <div class="diary-divider"></div>
+      <div class="diary-section">
+        <div class="diary-label">Health</div>
+        <textarea class="notes-area" placeholder="How you felt, energy level, habits, observations…"></textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── TRACKING PAGE ── -->
+  <div class="page" id="page-track">
+    <div class="date-bar">
+      <div class="date-nav">
+        <button onclick="changeDate(-1)">&#8592;</button>
+        <span class="date-label" id="track-date"></span>
+        <button onclick="changeDate(1)">&#8594;</button>
+      </div>
+      <button class="today-btn" onclick="goToday()">Today</button>
+    </div>
+
+    <div class="track-section">
+      <div class="track-section-title">Health</div>
+      <div class="track-grid">
+        <div class="track-card">
+          <div class="track-label">Meditation</div>
+          <div class="track-value" id="v-med">0</div>
+          <div class="track-unit">minutes</div>
+          <input class="track-input" type="number" min="0" placeholder="—" oninput="setVal('v-med',this.value)">
+        </div>
+        <div class="track-card">
+          <div class="track-label">Walking</div>
+          <div class="track-value" id="v-walk">0</div>
+          <div class="track-unit">minutes</div>
+          <input class="track-input" type="number" min="0" placeholder="—" oninput="setVal('v-walk',this.value)">
+        </div>
+        <div class="track-card">
+          <div class="track-label">Sleep</div>
+          <div class="track-value" id="v-sleep">0</div>
+          <div class="track-unit">hours</div>
+          <input class="track-input" type="number" min="0" step="0.5" placeholder="—" oninput="setVal('v-sleep',this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="track-section">
+      <div class="track-section-title">Skills & Admin</div>
+      <div class="track-grid">
+        <div class="track-card">
+          <div class="track-label">Script practice</div>
+          <div class="track-value" id="v-script">0</div>
+          <div class="track-unit">minutes</div>
+          <input class="track-input" type="number" min="0" placeholder="—" oninput="setVal('v-script',this.value)">
+        </div>
+        <div class="track-card">
+          <div class="track-label">Admin / CRM</div>
+          <div class="track-value" id="v-admin">0</div>
+          <div class="track-unit">minutes</div>
+          <input class="track-input" type="number" min="0" placeholder="HH:MM">
+        </div>
+        <div class="track-card">
+          <div class="track-label">Marketing</div>
+          <div class="track-value" id="v-mkt">0</div>
+          <div class="track-unit">minutes</div>
+          <input class="track-input" type="number" min="0" placeholder="—" oninput="setVal('v-mkt',this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="track-section">
+      <div class="track-section-title">Lead Gen & Follow-Up</div>
+      <div class="track-grid">
+        <div class="track-card">
+          <div class="track-label">Doors knocked</div>
+          <div class="track-value" id="v-doors">0</div>
+          <div class="track-unit">doors</div>
+          <input class="track-input" type="number" min="0" placeholder="—" oninput="setVal('v-doors',this.value)">
+        </div>
+        <div class="track-card">
+          <div class="track-label">Leads followed up</div>
+          <div class="track-value" id="v-leads">0</div>
+          <div class="track-unit">contacts</div>
+          <input class="track-input" type="number" min="0" placeholder="—" oninput="setVal('v-leads',this.value)">
+        </div>
+        <div class="track-card">
+          <div class="track-label">New leads</div>
+          <div class="track-value" id="v-new">0</div>
+          <div class="track-unit">contacts</div>
+          <input class="track-input" type="number" min="0" placeholder="—" oninput="setVal('v-new',this.value)">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── DATE
+  let currentDate = new Date();
+
+  function formatDate(d) {
+    return d.toLocaleDateString('en-CA', { weekday:'short', month:'short', day:'numeric' });
+  }
+
+  function updateDates() {
+    const str = formatDate(currentDate);
+    const el1 = document.getElementById('plan-date');
+    const el2 = document.getElementById('track-date');
+    if (el1) el1.textContent = str;
+    if (el2) el2.textContent = str;
+    const td = document.getElementById('top-date');
+    if (td) td.textContent = currentDate.toLocaleDateString('en-CA', { month:'short', day:'numeric', year:'numeric' });
+  }
+
+  function changeDate(dir) {
+    currentDate.setDate(currentDate.getDate() + dir);
+    updateDates();
+  }
+
+  function goToday() {
+    currentDate = new Date();
+    updateDates();
+  }
+
+  updateDates();
+
+  // ── TABS
+  function show(page, el) {
+    document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.getElementById('page-' + page).classList.add('active');
+    el.classList.add('active');
+  }
+
+  // ── TIERS
+  function toggleTier(header) {
+    var body = header.nextElementSibling;
+    var arrow = header.querySelector('.tier-arrow');
+    var isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : '';
+    arrow.classList.toggle('open', !isOpen);
+  }
+
+  // ── ADD GOAL
+  function addGoal(btn) {
+    var body = btn.parentElement;
+    var item = document.createElement('div');
+    item.className = 'goal-item';
+    item.innerHTML = '<input type="checkbox"><input type="text" placeholder="New goal...">';
+    body.insertBefore(item, btn);
+    item.querySelector('input[type=text]').focus();
+  }
+
+  // ── DURATION MASK
+  function applyDurMask(inp) {
+    inp.addEventListener('keydown', function(e) {
+      var allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'];
+      if (allowed.indexOf(e.key) >= 0) return;
+      if (!/^\d$/.test(e.key)) { e.preventDefault(); }
+    });
+    inp.addEventListener('input', function() {
+      var digits = this.value.replace(/\D/g, '').slice(0, 4);
+      if (digits.length >= 3) {
+        this.value = digits.slice(0, 2) + ':' + digits.slice(2);
+      } else {
+        this.value = digits;
+      }
+    });
+    inp.addEventListener('blur', function() {
+      var digits = this.value.replace(/\D/g, '').padStart(4, '0').slice(0, 4);
+      this.value = digits.slice(0, 2) + ':' + digits.slice(2);
+    });
+  }
+
+  document.querySelectorAll('.dur-inp').forEach(applyDurMask);
+
+  // ── ADD PLAN ROW
+  function addPlanRow(listId) {
+    var list = document.getElementById(listId);
+    var row = document.createElement('div');
+    row.className = 'plan-row';
+    row.innerHTML = '<input class="col-time time-inp" type="text" placeholder="9:00 am">'
+      + '<input class="col-dur dur-inp" type="text" placeholder="HH:MM">'
+      + '<input class="col-name name-inp" type="text" placeholder="Activity name...">'
+      + '<select class="col-pri pri-sel"><option value="high">H</option><option value="med" selected>M</option><option value="low">L</option></select>'
+      + '<input class="col-done" type="checkbox" onchange="strikeRow(this)">';
+    list.appendChild(row);
+    applyDurMask(row.querySelector('.dur-inp'));
+    row.querySelector('.name-inp').focus();
+  }
+
+  // ── ADD TASK
+  function addTask() {
+    var list = document.getElementById('task-list');
+    var row = document.createElement('div');
+    row.className = 'plan-row';
+    row.style.gridTemplateColumns = '1fr 36px 22px';
+    row.innerHTML = '<input class="col-name name-inp" type="text" placeholder="Task name...">'
+      + '<select class="col-pri pri-sel"><option value="high">H</option><option value="med" selected>M</option><option value="low">L</option></select>'
+      + '<input class="col-done" type="checkbox" onchange="strikeRow(this)">';
+    list.appendChild(row);
+    row.querySelector('.name-inp').focus();
+  }
+
+  // ── STRIKE ROW
+  function strikeRow(cb) {
+    var nameInp = cb.closest('.plan-row').querySelector('.name-inp');
+    nameInp.classList.toggle('done', cb.checked);
+  }
+
+  // ── TRACKING VALUES
+  function setVal(id, val) {
+    document.getElementById(id).textContent = val || '0';
+  }
+
+  // ── TOAST
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2500);
+  }
+
+  // ── COLLECT DATA
+  function collectData() {
+    var y2 = currentDate.getFullYear();
+    var m2 = String(currentDate.getMonth()+1).padStart(2,'0');
+    var d2 = String(currentDate.getDate()).padStart(2,'0');
+    var dateKey = y2 + '-' + m2 + '-' + d2;
+    var y2 = currentDate.getFullYear();
+    var m2 = String(currentDate.getMonth()+1).padStart(2,'0');
+    var d2 = String(currentDate.getDate()).padStart(2,'0');
+    var date = y2 + '-' + m2 + '-' + d2;
+    var goals = {};
+    document.querySelectorAll('.tier').forEach(function(tier) {
+      var label = tier.querySelector('.tier-label').textContent.trim();
+      var items = [];
+      tier.querySelectorAll('.goal-item').forEach(function(item) {
+        items.push({
+          checked: item.querySelector('input[type=checkbox]').checked,
+          text: item.querySelector('input[type=text]').value
+        });
+      });
+      goals[label] = items;
+    });
+    var repeat = [];
+    document.querySelectorAll('#repeat-list .plan-row').forEach(function(row) {
+      repeat.push({ start: row.querySelector('.time-inp').value, duration: row.querySelector('.dur-inp').value, name: row.querySelector('.name-inp').value, priority: row.querySelector('.pri-sel').value, done: row.querySelector('.col-done').checked });
+    });
+    var planned = [];
+    document.querySelectorAll('#planned-list .plan-row').forEach(function(row) {
+      planned.push({ start: row.querySelector('.time-inp').value, duration: row.querySelector('.dur-inp').value, name: row.querySelector('.name-inp').value, priority: row.querySelector('.pri-sel').value, done: row.querySelector('.col-done').checked });
+    });
+    var tasks = [];
+    document.querySelectorAll('#task-list .plan-row').forEach(function(row) {
+      tasks.push({ name: row.querySelector('.name-inp').value, priority: row.querySelector('.pri-sel').value, done: row.querySelector('.col-done').checked });
+    });
+    var diaries = [];
+    document.querySelectorAll('.diary-section').forEach(function(sec) {
+      diaries.push({ label: sec.querySelector('.diary-label').textContent, text: sec.querySelector('textarea').value });
+    });
+    var tracking = {};
+    document.querySelectorAll('.track-card').forEach(function(card) {
+      var lbl = card.querySelector('.track-label').textContent;
+      var inp = card.querySelector('.track-input');
+      tracking[lbl] = inp ? inp.value : '';
+    });
+    return { date: date, goals: goals, repeat: repeat, planned: planned, tasks: tasks, diaries: diaries, tracking: tracking };
+  }
+
+  // ── SAVE JSON
+  function saveJSON() {
+    var data = collectData();
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Planner_' + data.date + '.json';
+    a.click();
+    showToast('Saved Planner_' + data.date + '.json');
+  }
+
+  // ── LOAD JSON
+  function loadJSON(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var data = JSON.parse(e.target.result);
+        restoreData(data);
+        showToast('Loaded ' + (data.date || file.name));
+      } catch(err) {
+        showToast('Error: invalid file');
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
+  // ── RESTORE DATA
+  function makeRow(r, hasTimes) {
+    var row = document.createElement('div');
+    row.className = 'plan-row';
+    if (!hasTimes) row.style.gridTemplateColumns = '1fr 36px 22px';
+    var html = '';
+    if (hasTimes) {
+      html += '<input class="col-time time-inp" type="text" value="' + (r.start||'') + '">';
+      html += '<input class="col-dur dur-inp" type="text" value="' + (r.duration||'') + '">';
+    }
+    html += '<input class="col-name name-inp' + (r.done?' done':'') + '" type="text" value="' + (r.name||'').replace(/"/g,'&quot;') + '">';
+    html += '<select class="col-pri pri-sel">'
+      + '<option value="high"' + (r.priority==='high'?' selected':'') + '>H</option>'
+      + '<option value="med"' + (r.priority==='med'?' selected':'') + '>M</option>'
+      + '<option value="low"' + (r.priority==='low'?' selected':'') + '>L</option>'
+      + '</select>';
+    html += '<input class="col-done" type="checkbox" onchange="strikeRow(this)"' + (r.done?' checked':'') + '>';
+    row.innerHTML = html;
+    return row;
+  }
+
+  function restoreData(data) {
+    if (data.repeat) {
+      var rl = document.getElementById('repeat-list');
+      rl.innerHTML = '';
+      data.repeat.forEach(function(r) { var row = makeRow(r, true); rl.appendChild(row); applyDurMask(row.querySelector('.dur-inp')); });
+    }
+    if (data.planned) {
+      var pl = document.getElementById('planned-list');
+      pl.innerHTML = '';
+      data.planned.forEach(function(r) { var row = makeRow(r, true); pl.appendChild(row); applyDurMask(row.querySelector('.dur-inp')); });
+    }
+    if (data.tasks) {
+      var tl = document.getElementById('task-list');
+      tl.innerHTML = '';
+      data.tasks.forEach(function(r) { tl.appendChild(makeRow(r, false)); });
+    }
+    if (data.diaries) {
+      var secs = document.querySelectorAll('.diary-section');
+      data.diaries.forEach(function(d, i) { if (secs[i]) secs[i].querySelector('textarea').value = d.text || ''; });
+    }
+    if (data.tracking) {
+      document.querySelectorAll('.track-card').forEach(function(card) {
+        var lbl = card.querySelector('.track-label').textContent;
+        if (data.tracking[lbl] !== undefined) {
+          var inp = card.querySelector('.track-input');
+          var val = card.querySelector('.track-value');
+          if (inp) inp.value = data.tracking[lbl];
+          if (val) val.textContent = data.tracking[lbl] || '0';
+        }
+      });
+    }
+  }
+
+  // ── SAVE PDF
+  function savePDF() {
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ unit: 'mm', format: 'letter' });
+    var dateStr = currentDate.toLocaleDateString('en-CA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    var py = currentDate.getFullYear();
+    var pm = String(currentDate.getMonth()+1).padStart(2,'0');
+    var pd = String(currentDate.getDate()).padStart(2,'0');
+    var dateKey = py + '-' + pm + '-' + pd;
+    var margin = 18, pageW = 216, colW = pageW - margin * 2;
+    var y = 18;
+
+    // Header
+    doc.setFillColor(13, 31, 60);
+    doc.rect(0, 0, pageW, 28, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(201, 168, 76);
+    doc.text('Pinnacle Daily', margin, 13);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(200, 200, 200);
+    doc.text('Peter Luo  |  RE/MAX Realtron Realty Inc.', margin, 20);
+    doc.setTextColor(201, 168, 76);
+    doc.text(dateStr, pageW - margin, 20, { align: 'right' });
+    y = 36;
+
+    function sectionTitle(title) {
+      if (y > 260) { doc.addPage(); y = 18; }
+      doc.setFillColor(13, 31, 60);
+      doc.rect(margin, y - 4, colW, 8, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(201, 168, 76);
+      doc.text(title.toUpperCase(), margin + 3, y + 1);
+      y += 10;
+    }
+
+    function tableRow(cols, isHeader) {
+      if (y > 265) { doc.addPage(); y = 18; }
+      if (isHeader) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setFillColor(245, 245, 240);
+        doc.rect(margin, y - 3.5, colW, 7, 'F');
+        doc.setTextColor(30, 30, 30);
+      }
+      cols.forEach(function(c) { doc.text(String(c.text || ''), margin + c.x, y, { maxWidth: c.w }); });
+      y += isHeader ? 6 : 8;
+    }
+
+    function diaryBlock(label, text) {
+      if (y > 255) { doc.addPage(); y = 18; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(201, 168, 76);
+      doc.text(label.toUpperCase(), margin, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(30, 30, 30);
+      var lines = doc.splitTextToSize(text || '(blank)', colW);
+      lines.forEach(function(line) {
+        if (y > 265) { doc.addPage(); y = 18; }
+        doc.text(line, margin, y);
+        y += 5;
+      });
+      y += 4;
+    }
+
+    // Repeat Activities
+    sectionTitle('Repeat Activities');
+    tableRow([{text:'Start',x:0,w:25},{text:'Duration',x:27,w:22},{text:'Activity',x:51,w:100},{text:'Pri',x:153,w:12},{text:'Done',x:167,w:12}], true);
+    document.querySelectorAll('#repeat-list .plan-row').forEach(function(row) {
+      var done = row.querySelector('.col-done').checked;
+      tableRow([{text:row.querySelector('.time-inp').value,x:0,w:25},{text:row.querySelector('.dur-inp').value,x:27,w:22},{text:(done?'✓ ':'')+row.querySelector('.name-inp').value,x:51,w:100},{text:row.querySelector('.pri-sel').value[0].toUpperCase(),x:153,w:12},{text:done?'Yes':'—',x:167,w:12}], false);
+    });
+    y += 4;
+
+    // Planned Activities
+    sectionTitle('Planned Activities');
+    tableRow([{text:'Start',x:0,w:25},{text:'Duration',x:27,w:22},{text:'Activity',x:51,w:100},{text:'Pri',x:153,w:12},{text:'Done',x:167,w:12}], true);
+    document.querySelectorAll('#planned-list .plan-row').forEach(function(row) {
+      var done = row.querySelector('.col-done').checked;
+      tableRow([{text:row.querySelector('.time-inp').value,x:0,w:25},{text:row.querySelector('.dur-inp').value,x:27,w:22},{text:(done?'✓ ':'')+row.querySelector('.name-inp').value,x:51,w:100},{text:row.querySelector('.pri-sel').value[0].toUpperCase(),x:153,w:12},{text:done?'Yes':'—',x:167,w:12}], false);
+    });
+    y += 4;
+
+    // Tasks
+    sectionTitle('Tasks');
+    tableRow([{text:'Task',x:0,w:155},{text:'Pri',x:157,w:12},{text:'Done',x:169,w:12}], true);
+    document.querySelectorAll('#task-list .plan-row').forEach(function(row) {
+      var done = row.querySelector('.col-done').checked;
+      tableRow([{text:(done?'✓ ':'')+row.querySelector('.name-inp').value,x:0,w:155},{text:row.querySelector('.pri-sel').value[0].toUpperCase(),x:157,w:12},{text:done?'Yes':'—',x:169,w:12}], false);
+    });
+    y += 4;
+
+    // Diary
+    sectionTitle('Daily Diary');
+    document.querySelectorAll('.diary-section').forEach(function(sec) {
+      diaryBlock(sec.querySelector('.diary-label').textContent, sec.querySelector('textarea').value);
+    });
+
+    // Tracking
+    y += 2;
+    sectionTitle('Tracking');
+    document.querySelectorAll('.track-section').forEach(function(sec) {
+      if (y > 255) { doc.addPage(); y = 18; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(201, 168, 76);
+      doc.text(sec.querySelector('.track-section-title').textContent, margin, y);
+      y += 6;
+      sec.querySelectorAll('.track-card').forEach(function(card) {
+        if (y > 265) { doc.addPage(); y = 18; }
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(30, 30, 30);
+        doc.text(card.querySelector('.track-label').textContent + ': ' + card.querySelector('.track-value').textContent + ' ' + card.querySelector('.track-unit').textContent, margin + 4, y);
+        y += 5.5;
+      });
+      y += 2;
+    });
+
+    // Footer
+    doc.setFillColor(13, 31, 60);
+    doc.rect(0, 282, pageW, 15, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(201, 168, 76);
+    doc.text('Pinnacle Listing System  |  Peter Luo  |  RE/MAX Realtron Realty Inc.  |  647-824-3718', pageW/2, 290, { align: 'center' });
+
+    doc.save('daily-' + dateKey + '.pdf');
+    showToast('PDF saved — daily-' + dateKey + '.pdf');
+  }
+
+  // ══════════════════════════════════════════════
+  // PWA + SMART REMINDER SYSTEM
+  // ══════════════════════════════════════════════
+
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  var reminderTimers = [];
+
+  // Inject PWA manifest dynamically
+  (function() {
+    var manifest = {
+      name: 'Pinnacle Daily',
+      short_name: 'PinnacleD',
+      start_url: window.location.href,
+      display: 'standalone',
+      background_color: '#1a2b4a',
+      theme_color: '#1a2b4a',
+      icons: [{
+        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%231a2b4a'/%3E%3Ctext x='96' y='130' font-size='110' text-anchor='middle' fill='%23c9a84c'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E",
+        sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable'
+      }]
+    };
+    var blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+    var link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = URL.createObjectURL(blob);
+    document.head.appendChild(link);
+  })();
+
+  // Register Service Worker (required for iOS push)
+  (function() {
+    if (!('serviceWorker' in navigator)) return;
+    var swCode = [
+      "self.addEventListener('install', function(e){ self.skipWaiting(); });",
+      "self.addEventListener('activate', function(e){ e.waitUntil(clients.claim()); });",
+      "self.addEventListener('notificationclick', function(e){",
+      "  e.notification.close();",
+      "  e.waitUntil(clients.matchAll({type:'window'}).then(function(list){",
+      "    if (list.length) return list[0].focus();",
+      "    return clients.openWindow('/');",
+      "  }));",
+      "});"
+    ].join('\n');
+    var blob = new Blob([swCode], {type:'application/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(function(){});
+  })();
+
+  // Parse start time string into today's Date
+  function parseStartTime(str) {
+    if (!str) return null;
+    str = str.trim().toLowerCase();
+    var m = str.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/);
+    if (!m) return null;
+    var h = parseInt(m[1]), min = parseInt(m[2]), meridiem = m[3];
+    if (meridiem === 'pm' && h !== 12) h += 12;
+    if (meridiem === 'am' && h === 12) h = 0;
+    var d = new Date();
+    d.setHours(h, min, 0, 0);
+    return d;
+  }
+
+  function clearReminders() {
+    reminderTimers.forEach(function(t){ clearTimeout(t); });
+    reminderTimers = [];
+  }
+
+  function scheduleNotif(name, startDate, pri) {
+    var now = new Date();
+    var delay = startDate - now;
+    if (delay < 0) return;
+    var label = pri === 'high' ? '🔴 ' : pri === 'med' ? '🟡 ' : '';
+    var t = setTimeout(function() {
+      if (Notification.permission === 'granted') {
+        new Notification('Pinnacle Daily — Time to Start', {
+          body: label + name,
+          icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%231a2b4a'/%3E%3Ctext x='96' y='130' font-size='110' text-anchor='middle' fill='%23c9a84c'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E",
+          silent: false
+        });
+      }
+    }, delay);
+    reminderTimers.push(t);
+  }
+
+  function scheduleAllReminders() {
+    clearReminders();
+    var count = 0;
+    document.querySelectorAll('#repeat-list .plan-row, #planned-list .plan-row').forEach(function(row) {
+      var doneEl = row.querySelector('.col-done');
+      if (doneEl && doneEl.checked) return;
+      var timeInp = row.querySelector('.time-inp');
+      var nameInp = row.querySelector('.name-inp');
+      var priSel  = row.querySelector('.pri-sel');
+      if (!timeInp || !nameInp) return;
+      var startDate = parseStartTime(timeInp.value);
+      var name = nameInp.value.trim();
+      if (!startDate || !name) return;
+      scheduleNotif(name, startDate, priSel ? priSel.value : 'med');
+      count++;
+    });
+    return count;
+  }
+
+  var remindersOn = false;
+
+  function updateBellState(on) {
+    remindersOn = on;
+    var btn = document.getElementById('bell-btn');
+    if (!btn) return;
+    btn.title = on ? 'Reminders ON — click to clear' : 'Set reminders for today';
+    btn.style.color = on ? 'var(--gold)' : '#aaa';
+    btn.textContent = on ? '🔔' : '🔕';
+  }
+
+  function showInstallBanner() {
+    if (document.getElementById('install-banner')) return;
+    var banner = document.createElement('div');
+    banner.id = 'install-banner';
+    banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--navy);border-top:2px solid var(--gold);padding:16px 20px;z-index:9999;max-width:600px;margin:0 auto;right:auto;width:100%;';
+    banner.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      + '<span style="font-family:\'Playfair Display\',serif;color:var(--gold);font-size:15px;font-weight:600">Enable Reminders on iPhone</span>'
+      + '<button onclick="document.getElementById(\'install-banner\').remove()" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;line-height:1">✕</button>'
+      + '</div>'
+      + '<div style="font-size:13px;color:#ccc;line-height:1.65">'
+      + 'To get reminders on iPhone, first add this page to your Home Screen:<br>'
+      + '<span style="color:var(--gold-light)">Safari → Share ⎙ → Add to Home Screen</span><br>'
+      + 'Then open Pinnacle Daily from your Home Screen and tap 🔔 again.'
+      + '</div>';
+    document.body.appendChild(banner);
+  }
+
+  function enableReminders() {
+    if (!('Notification' in window)) {
+      showToast('Notifications not supported here');
+      return;
+    }
+    if (isIOS && !isStandalone) {
+      showInstallBanner();
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      var n = scheduleAllReminders();
+      showToast(n + ' reminder' + (n !== 1 ? 's' : '') + ' set');
+      updateBellState(true);
+    } else if (Notification.permission === 'denied') {
+      showToast('Blocked — enable in device Settings');
+    } else {
+      Notification.requestPermission().then(function(p) {
+        if (p === 'granted') {
+          var n = scheduleAllReminders();
+          showToast(n + ' reminder' + (n !== 1 ? 's' : '') + ' set');
+          updateBellState(true);
+        } else {
+          showToast('Permission not granted');
+        }
+      });
+    }
+  }
+
+  function disableReminders() {
+    clearReminders();
+    updateBellState(false);
+    showToast('Reminders cleared');
+  }
+
+  function toggleReminders() {
+    if (remindersOn) { disableReminders(); } else { enableReminders(); }
+  }
+
+  // Add bell button to top bar
+  (function() {
+    var topBar = document.querySelector('.top-bar > div:last-child');
+    if (!topBar) return;
+    var btn = document.createElement('button');
+    btn.id = 'bell-btn';
+    btn.className = 'action-btn';
+    btn.title = 'Set reminders for today';
+    btn.textContent = '🔕';
+    btn.style.cssText = 'font-size:15px;color:#aaa;padding:7px 10px;';
+    btn.onclick = toggleReminders;
+    topBar.insertBefore(btn, topBar.firstChild);
+  })();
+
+</script>
+</body>
+</html>
