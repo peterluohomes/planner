@@ -1006,18 +1006,27 @@ function pollReminders(){
 
 function countScheduledToday(){
   return new Promise(function(resolve){
-    dbGet('days',dateKey(new Date())).then(function(data){
-      if(!data){resolve(0);return;}
+    var key=dateKey(new Date());
+    dbGet('days',key).then(function(data){
+      if(!data){
+        showToast('Debug: no data for key '+key);
+        resolve(0);return;
+      }
       var now=new Date();
       var rows=[].concat(data.repeat||[],data.planned||[]);
-      var count=0;
+      var total=rows.length,count=0,skipped=[];
       rows.forEach(function(r){
-        if(r.done||!r.name||!r.name.trim()||!r.start)return;
+        if(r.done){skipped.push(r.name+' [done]');return;}
+        if(!r.name||!r.name.trim()){skipped.push('[no name]');return;}
+        if(!r.start){skipped.push(r.name+' [no time]');return;}
         var pt=parseStartTime(r.start,r.ampm||'AM');
-        if(!pt)return;
+        if(!pt){skipped.push(r.name+' [bad time:'+r.start+']');return;}
         var t=new Date();t.setHours(pt.h,pt.min,0,0);
         if(t>=now)count++;
+        else skipped.push(r.name+' [past '+r.start+' '+r.ampm+']');
       });
+      console.log('Reminder debug — key:',key,'rows:',total,'armed:',count,'skipped:',skipped);
+      showToast('Key:'+key+' rows:'+total+' armed:'+count);
       resolve(count);
     });
   });
