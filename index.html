@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Pinnacle Planner — Peter Luo</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -230,6 +233,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
   <div class="header-right">
     <div class="streak-badge" id="streak-badge">🔥 0 days</div>
     <button class="hdr-btn gold" id="bell-btn" onclick="toggleReminders()">🔕</button>
+    <button class="hdr-btn" onclick="diagDB()">Diag</button>
     <button class="hdr-btn" onclick="backupData()">Backup</button>
     <button class="hdr-btn" onclick="document.getElementById('restore-input').click()">Restore</button>
     <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreBackup(event)">
@@ -1006,27 +1010,16 @@ function pollReminders(){
 
 function countScheduledToday(){
   return new Promise(function(resolve){
-    var key=dateKey(new Date());
-    dbGet('days',key).then(function(data){
-      if(!data){
-        showToast('Debug: no data for key '+key);
-        resolve(0);return;
-      }
-      var now=new Date();
+    dbGet('days',dateKey(new Date())).then(function(data){
+      if(!data){resolve(0);return;}
       var rows=[].concat(data.repeat||[],data.planned||[]);
-      var total=rows.length,count=0,skipped=[];
+      var count=0;
       rows.forEach(function(r){
-        if(r.done){skipped.push(r.name+' [done]');return;}
-        if(!r.name||!r.name.trim()){skipped.push('[no name]');return;}
-        if(!r.start){skipped.push(r.name+' [no time]');return;}
+        if(r.done||!r.name||!r.name.trim()||!r.start)return;
         var pt=parseStartTime(r.start,r.ampm||'AM');
-        if(!pt){skipped.push(r.name+' [bad time:'+r.start+']');return;}
-        var t=new Date();t.setHours(pt.h,pt.min,0,0);
-        if(t>=now)count++;
-        else skipped.push(r.name+' [past '+r.start+' '+r.ampm+']');
+        if(!pt)return;
+        count++;
       });
-      console.log('Reminder debug — key:',key,'rows:',total,'armed:',count,'skipped:',skipped);
-      showToast('Key:'+key+' rows:'+total+' armed:'+count);
       resolve(count);
     });
   });
@@ -1066,7 +1059,7 @@ function toggleReminders(){
     countScheduledToday().then(function(n){
       startReminderPoll();
       updateBellState(true);
-      showToast(n+' reminder'+(n!==1?'s':'')+' armed for today');
+      showToast(n+' activit'+(n!==1?'ies':'y')+' will trigger alerts');
     });
   }
   if(!('Notification' in window)){
@@ -1103,6 +1096,26 @@ function showToast(msg){var t=document.getElementById('toast');t.textContent=msg
 (function(){var m={name:'Pinnacle Planner',short_name:'Pinnacle',start_url:window.location.href,display:'standalone',background_color:'#1a2b4a',theme_color:'#1a2b4a',icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%231a2b4a'/%3E%3Ctext x='96' y='130' font-size='110' text-anchor='middle' fill='%23c9a84c'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E",sizes:'192x192',type:'image/svg+xml',purpose:'any maskable'}]};var link=document.createElement('link');link.rel='manifest';link.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/json'}));document.head.appendChild(link);})();
 // ── AUTO-SAVE ──
 ['diary-gratitude','diary-morning','diary-wins','diary-evening','diary-differently','field-affirmation','field-neighbourhood','top3-1','top3-2','top3-3'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('input',saveDay);});
+// ── DIAG ──
+function diagDB(){
+  var todayKey=dateKey(new Date());
+  dbGetAll('days').then(function(days){
+    if(!days.length){showToast('DB empty — no days saved');return;}
+    var keys=days.map(function(d){return d.date;}).sort();
+    var todayRow=days.find(function(d){return d.date===todayKey;});
+    var msg='Today='+todayKey+' | DB keys: '+keys.join(', ');
+    if(todayRow){
+      var rows=[].concat(todayRow.repeat||[],todayRow.planned||[]);
+      msg+=' | Today rows:'+rows.length;
+      var timed=rows.filter(function(r){return r.start;});
+      msg+=' timed:'+timed.length;
+      if(timed.length)msg+=' eg:'+timed[0].start+' '+(timed[0].ampm||'?');
+    } else {
+      msg+=' | TODAY KEY NOT FOUND IN DB';
+    }
+    alert(msg);
+  });
+}
 // ── INIT ──
 openDB().then(function(){buildGoalTiers();loadGoals();loadScripts();loadDay();updateStreak();}).catch(function(){showToast('Storage error');});
 document.addEventListener('click',function(e){if(fabOpen&&!e.target.closest('#fab')&&!e.target.closest('#fab-menu'))closeFab();});
