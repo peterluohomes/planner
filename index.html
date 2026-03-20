@@ -464,7 +464,7 @@ function dbPut(s,v){return new Promise(function(res){var t=db.transaction(s,'rea
 function dbGetAll(s){return new Promise(function(res){var t=db.transaction(s,'readonly'),r=t.objectStore(s).getAll();r.onsuccess=function(){res(r.result||[]);};r.onerror=function(){res([]);};});}
 // ── DATE ──
 var currentDate=new Date();
-function dateKey(d){d=d||currentDate;return d.toISOString().slice(0,10);}
+function dateKey(d){d=d||currentDate;var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day;}
 function formatDateLabel(d){var isToday=dateKey(d)===dateKey(new Date());return d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+(isToday?' · Today':'');}
 function changeDate(dir){currentDate=new Date(currentDate);currentDate.setDate(currentDate.getDate()+(dir*7));loadDay();}
 function goToday(){currentDate=new Date();loadDay();}
