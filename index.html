@@ -233,7 +233,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
   <div class="header-right">
     <div class="streak-badge" id="streak-badge">🔥 0 days</div>
     <button class="hdr-btn gold" id="bell-btn" onclick="toggleReminders()">🔕</button>
-    <button class="hdr-btn" onclick="diagDB()">Diag</button>
     <button class="hdr-btn" onclick="backupData()">Backup</button>
     <button class="hdr-btn" onclick="document.getElementById('restore-input').click()">Restore</button>
     <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreBackup(event)">
@@ -1056,11 +1055,16 @@ function toggleReminders(){
   }
   if(isIOS&&!checkStandalone()){showInstallBanner();return;}
   function activate(){
-    countScheduledToday().then(function(n){
-      startReminderPoll();
-      updateBellState(true);
-      showToast(n+' activit'+(n!==1?'ies':'y')+' will trigger alerts');
-    });
+    // Force-flush current DOM state to DB first, then count
+    clearTimeout(saveTimer);
+    _doSaveDay();
+    setTimeout(function(){
+      countScheduledToday().then(function(n){
+        startReminderPoll();
+        updateBellState(true);
+        showToast(n+' activit'+(n!==1?'ies':'y')+' will trigger alerts');
+      });
+    },800);
   }
   if(!('Notification' in window)){
     // No notification API — still use audio+banner polling
