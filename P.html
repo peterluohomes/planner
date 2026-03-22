@@ -322,6 +322,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
   #page-planner{display:none;flex-wrap:wrap;align-content:flex-start;gap:16px;padding:110px 32px 40px;}
   #page-planner.active{display:flex;}
   #page-planner .card{flex:1 1 calc(50% - 8px);min-width:300px;margin-bottom:0;}
+
+  /* Weekly review: bigger, more spacious */
+  .wdr{padding:18px 20px;margin-bottom:14px;}
+  .wdr-date{font-size:16px;font-weight:700;}
+  .wdr-star{font-size:15px;}
+  .wdr-stats{font-size:13px;gap:12px;line-height:2;}
+  .wdr-stat strong{font-size:13px;}
+  .wdr-eod{font-size:14px;margin-top:8px;}
+  .review-nav-label{font-size:17px;}
+  .review-nav button{font-size:15px;padding:6px 16px;}
+  .review-title{font-size:22px;}
+  .period-btn{font-size:12px;padding:7px 18px;}
 }
 
 /* ── 1280px+ (iPad Pro 13" landscape / Desktop) ── */
@@ -337,6 +349,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
   .page[id="page-planner"],
   .page[id="page-diary"],
   .page[id="page-tracking"]{padding-top:110px;}
+
+  /* Weekly review: even bigger on desktop */
+  .wdr{padding:22px 26px;margin-bottom:18px;}
+  .wdr-date{font-size:18px;}
+  .wdr-star{font-size:17px;}
+  .wdr-stats{font-size:14px;gap:16px;line-height:2.2;}
+  .wdr-stat strong{font-size:14px;}
+  .wdr-eod{font-size:15px;margin-top:10px;}
+  .review-nav-label{font-size:19px;}
+  .review-title{font-size:24px;}
 }
 
 /* ── 1600px+ (wide desktop) ── */
@@ -1398,7 +1420,7 @@ function exportToIOSReminders(){
     cal.push('DTSTAMP:'+planDateStr+'T'+startH+startM+'00');
     cal.push('DTSTART:'+planDateStr+'T'+startH+startM+'00');
     cal.push('DTEND:'+endDay+'T'+endH+endM+'00');
-    cal.push('SUMMARY:'+priLabel+item.name);
+    cal.push('SUMMARY:'+priLabel+item.name+' ALRM');
     cal.push('DESCRIPTION:Pinnacle Planner Activity');
     cal.push('BEGIN:VALARM');
     cal.push('TRIGGER:PT0M');
