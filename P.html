@@ -398,7 +398,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
       <span class="date-label" id="plan-date-label"></span>
       <button onclick="changeDate(1)">→</button>
     </div>
-    <button class="today-btn" onclick="goToday()">Today</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="week-num-badge" style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap"></span>
+      <button id="copy-week-btn" class="today-btn" onclick="copyRepeatFromPrevWeek()" style="white-space:nowrap"></button>
+      <button class="today-btn" onclick="goToday()">Today</button>
+    </div>
   </div>
   <div style="padding:4px 14px 6px"><div class="week-grid" id="week-grid"></div></div>
 </div>
@@ -624,6 +628,83 @@ function dateKey(d){d=d||currentDate;var y=d.getFullYear(),m=String(d.getMonth()
 function formatDateLabel(d){var isToday=dateKey(d)===dateKey(new Date());return d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+(isToday?' · Today':'');}
 function changeDate(dir){currentDate=new Date(currentDate);currentDate.setDate(currentDate.getDate()+(dir*7));loadDay();}
 function goToday(){currentDate=new Date();loadDay();}
+
+// ── Week number (ISO-like: week containing the most days in the year) ──────
+function getWeekNumber(d){
+  var date=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var dayNum=date.getUTCDay()||7;
+  date.setUTCDate(date.getUTCDate()+4-dayNum);
+  var yearStart=new Date(Date.UTC(date.getUTCFullYear(),0,1));
+  return Math.ceil((((date-yearStart)/86400000)+1)/7);
+}
+
+// ── Copy repeat activities from same weekday last week ────────────────────
+function copyRepeatFromPrevWeek(){
+  var prevWn=getWeekNumber(new Date(currentDate.getFullYear(),currentDate.getMonth(),currentDate.getDate()-7));
+
+  // Find Monday of current week
+  var dow=currentDate.getDay()||7; // Mon=1...Sun=7
+  var monday=new Date(currentDate);
+  monday.setDate(currentDate.getDate()-(dow-1));
+
+  // Build pairs: {prevKey, curKey} for each of the 7 days
+  var pairs=[];
+  for(var i=0;i<7;i++){
+    var cur=new Date(monday); cur.setDate(monday.getDate()+i);
+    var prev=new Date(cur);   prev.setDate(cur.getDate()-7);
+    pairs.push({
+      curKey:  cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0'),
+      prevKey: prev.getFullYear()+'-'+String(prev.getMonth()+1).padStart(2,'0')+'-'+String(prev.getDate()).padStart(2,'0'),
+      dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][cur.getDay()]
+    });
+  }
+
+  // Fetch all 14 records (7 prev + 7 cur) in parallel
+  var allKeys=pairs.map(function(p){return p.prevKey;})
+               .concat(pairs.map(function(p){return p.curKey;}));
+
+  Promise.all(allKeys.map(function(k){return dbGet('days',k);}))
+  .then(function(results){
+    var prevResults=results.slice(0,7);
+    var curResults =results.slice(7,14);
+
+    var totalCopied=0;
+    var saves=[];
+
+    pairs.forEach(function(pair,i){
+      var prevData=prevResults[i];
+      var curData =curResults[i];
+      var prevRepeats=prevData&&prevData.repeat?prevData.repeat:[];
+      if(!prevRepeats.length) return;
+
+      var existingNames=(curData&&curData.repeat?curData.repeat:[])
+        .map(function(r){return (r.name||'').trim().toLowerCase();});
+      var toAdd=prevRepeats.filter(function(r){
+        return existingNames.indexOf((r.name||'').trim().toLowerCase())===-1;
+      });
+      if(!toAdd.length) return;
+
+      // Merge into the current day's record and save directly to DB
+      var mergedRepeat=(curData&&curData.repeat?curData.repeat:[]).concat(toAdd);
+      var newRecord=curData
+        ? Object.assign({},curData,{repeat:mergedRepeat})
+        : {date:pair.curKey,repeat:mergedRepeat,planned:[],tasks:[]};
+      saves.push(dbPut('days',newRecord));
+      totalCopied+=toAdd.length;
+    });
+
+    if(!saves.length){
+      showToast('No new repeat activities found in Wk '+prevWn);
+      return;
+    }
+
+    Promise.all(saves).then(function(){
+      // Reload current day to reflect any changes to today's view
+      loadDay();
+      showToast('Copied '+totalCopied+' activit'+(totalCopied===1?'y':'ies')+' across 7 days from Wk '+prevWn);
+    });
+  });
+}
 // ── NAV ──
 function showPage(name,el){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});document.getElementById('page-'+name).classList.add('active');if(el)el.classList.add('active');var datePages={'planner':1,'diary':1,'tracking':1};document.getElementById('global-date-bar').style.display=datePages[name]?'block':'none';closeFab();}
 // ── GOALS ──
@@ -974,6 +1055,14 @@ function _doSaveDay(){
 }
 function loadDay(){
   document.getElementById('plan-date-label').textContent=formatDateLabel(currentDate);
+  var wn=getWeekNumber(currentDate);
+  var prevDate=new Date(currentDate); prevDate.setDate(prevDate.getDate()-7);
+  var prevWn=getWeekNumber(prevDate);
+  var dayName=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][currentDate.getDay()];
+  var badge=document.getElementById('week-num-badge');
+  var copyBtn=document.getElementById('copy-week-btn');
+  if(badge) badge.textContent='Wk '+wn;
+  if(copyBtn) copyBtn.textContent='Copy '+dayName+' from Wk '+prevWn;
   buildWeekGrid();
   dbGet('days',dateKey()).then(function(data){
     ['repeat-list','planned-list','task-list'].forEach(function(id){document.getElementById(id).innerHTML='';});
