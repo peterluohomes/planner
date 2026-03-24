@@ -1460,6 +1460,8 @@ function showInstallBanner(){
   document.body.appendChild(b);
 }
 // ── EXPORT TO iOS CALENDAR/REMINDERS ──
+var calQueue=[];
+var calQueueIdx=0;
 function exportToIOSReminders(){
   var now=new Date();
   // Use the currently selected planner date, not just today
@@ -1487,32 +1489,83 @@ function exportToIOSReminders(){
       var dp=durEl.value.match(/(\d+):(\d+)/);
       if(dp)durMin=parseInt(dp[1])*60+parseInt(dp[2]);
     }
-    items.push({name:nameEl.value.trim(),h:pt.h,min:pt.min,dur:durMin,pri:pri});
-  });
-  if(!items.length){
-    showToast('No timed activities to export');
-    return;
-  }
-  // Open Google Calendar deep links for each event
-  var delay=0;
-  items.forEach(function(item,i){
-    var startH=String(item.h).padStart(2,'0');
-    var startM=String(item.min).padStart(2,'0');
-    var endDate=new Date(planDate.getFullYear(),planDate.getMonth(),planDate.getDate(),item.h,item.min+item.dur);
+    // Build URL now
+    var startH=String(pt.h).padStart(2,'0');
+    var startM=String(pt.min).padStart(2,'0');
+    var endDate=new Date(planDate.getFullYear(),planDate.getMonth(),planDate.getDate(),pt.h,pt.min+durMin);
     var endH=String(endDate.getHours()).padStart(2,'0');
     var endM=String(endDate.getMinutes()).padStart(2,'0');
     var endDay=endDate.getFullYear()+String(endDate.getMonth()+1).padStart(2,'0')+String(endDate.getDate()).padStart(2,'0');
     var dates=planDateStr+'T'+startH+startM+'00/'+endDay+'T'+endH+endM+'00';
     var url='https://calendar.google.com/calendar/render?action=TEMPLATE'
-      +'&text='+encodeURIComponent(item.name+' ALRM')
+      +'&text='+encodeURIComponent(nameEl.value.trim()+' ALRM')
       +'&dates='+dates
       +'&ctz=America/Toronto'
       +'&details='+encodeURIComponent('Pinnacle Planner Activity');
-    setTimeout(function(){window.open(url,'_blank');},delay);
-    delay+=800;
+    items.push({name:nameEl.value.trim(),time:startH+':'+startM,url:url});
   });
-  var dateLabel=planDate.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
-  showToast(items.length+' event'+(items.length>1?'s':'')+' for '+dateLabel+' → Google Calendar');
+  if(!items.length){
+    showToast('No timed activities to export');
+    return;
+  }
+  // If only 1 item, open directly
+  if(items.length===1){
+    window.open(items[0].url,'_blank');
+    showToast('1 event → Google Calendar');
+    return;
+  }
+  // Multiple items — show sequential modal
+  calQueue=items;
+  calQueueIdx=0;
+  showCalModal();
+}
+
+function showCalModal(){
+  var existing=document.getElementById('cal-modal-overlay');
+  if(existing)existing.remove();
+  var item=calQueue[calQueueIdx];
+  var total=calQueue.length;
+  var overlay=document.createElement('div');
+  overlay.id='cal-modal-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(10,18,35,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  var modal=document.createElement('div');
+  modal.style.cssText='background:#fff;border-radius:16px;padding:24px;max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.3);text-align:center;';
+  modal.innerHTML='<div style="font-size:13px;color:#888;margin-bottom:4px;">Event '+(calQueueIdx+1)+' of '+total+'</div>'
+    +'<div style="font-size:18px;font-weight:700;color:#1a2b4a;margin-bottom:4px;">'+item.name+'</div>'
+    +'<div style="font-size:14px;color:#888;margin-bottom:20px;">'+item.time+'</div>'
+    +'<button onclick="openCalEvent()" style="display:block;width:100%;padding:14px;border:none;border-radius:10px;background:#1a2b4a;color:#fff;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:10px;">📅 Add to Calendar</button>'
+    +(calQueueIdx<total-1
+      ?'<button onclick="skipCalEvent()" style="display:block;width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;background:#fff;color:#888;font-size:14px;cursor:pointer;margin-bottom:8px;">Skip</button>'
+      :'')
+    +'<button onclick="closeCalModal()" style="display:block;width:100%;padding:10px;border:none;background:none;color:#aaa;font-size:13px;cursor:pointer;">'+(calQueueIdx<total-1?'Cancel all':'Done')+'</button>';
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+function openCalEvent(){
+  window.open(calQueue[calQueueIdx].url,'_blank');
+  calQueueIdx++;
+  if(calQueueIdx<calQueue.length){
+    showCalModal();
+  }else{
+    closeCalModal();
+    showToast(calQueue.length+' events → Google Calendar');
+  }
+}
+
+function skipCalEvent(){
+  calQueueIdx++;
+  if(calQueueIdx<calQueue.length){
+    showCalModal();
+  }else{
+    closeCalModal();
+    showToast('Done');
+  }
+}
+
+function closeCalModal(){
+  var el=document.getElementById('cal-modal-overlay');
+  if(el)el.remove();
 }
 
 // ── FAB ──
