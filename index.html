@@ -64,7 +64,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .field-inp::placeholder{color:var(--faint)}
 /* PLAN ROWS */
 .plan-hdr-row{display:grid;grid-template-columns:130px 1fr 40px 20px;gap:4px;padding:0 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--navy);opacity:0.4}
-.plan-row{display:grid;grid-template-columns:130px 1fr 40px 20px;gap:4px;align-items:center;padding:5px 0;border-bottom:1px solid var(--cream2)}
+.plan-row{display:grid;grid-template-columns:130px 1fr 40px 20px 22px;gap:4px;align-items:center;padding:5px 0;border-bottom:1px solid var(--cream2)}
 .plan-row.planned-row{grid-template-columns:130px 1fr 28px 40px 20px 22px}
 .plan-row:last-child{border-bottom:none}
 .plan-hdr-row.planned-hdr{grid-template-columns:130px 1fr 28px 40px 20px 22px}
@@ -92,7 +92,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .pri-sel[data-pri="low"]{color:#2b6cb0;border-color:rgba(43,108,176,0.35);background:rgba(43,108,176,0.07)}
 .col-done{justify-self:center;width:14px;height:14px;accent-color:var(--gold);cursor:pointer}
 /* TASKS */
-.task-row{display:grid;grid-template-columns:1fr 40px 20px;gap:4px;align-items:center;padding:6px 0;border-bottom:1px solid var(--cream2)}
+.task-row{display:grid;grid-template-columns:1fr 40px 20px 22px;gap:4px;align-items:center;padding:6px 0;border-bottom:1px solid var(--cream2)}
 .task-row:last-child{border-bottom:none}
 /* TOP 3 */
 .top3-list{display:flex;flex-direction:column;gap:8px}
@@ -295,7 +295,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
   .card-title{font-size:10px;}
 
   .plan-hdr-row{grid-template-columns:150px 1fr 44px 22px;}
-  .plan-row{grid-template-columns:150px 1fr 44px 22px;}
+  .plan-row{grid-template-columns:150px 1fr 44px 22px 24px;}
   .plan-row.planned-row{grid-template-columns:150px 1fr 34px 44px 22px 24px;}
   .plan-hdr-row.planned-hdr{grid-template-columns:150px 1fr 34px 44px 22px 24px;}
 
@@ -907,7 +907,7 @@ function makePlanRow(data, isPlanned){
     catHtml+='</select>';
   }
 
-  var delHtml=isPlanned?'<button class="row-del-btn" onclick="deletePlanRow(this)" title="Remove">✕</button>':'<span></span>';
+  var delHtml='<button class="row-del-btn" onclick="deletePlanRow(this)" title="Remove">✕</button>';
 
   var durVal=data.duration||'00:15';
   var DUR_OPTIONS=['00:05','00:10','00:15','00:30','00:45','01:00','02:00','03:00'];
@@ -961,6 +961,11 @@ function deletePlanRow(btn){
   recalcCategoryTotals();saveDay();
 }
 
+function deleteTaskRow(btn){
+  btn.closest('.task-row').remove();
+  saveDay();
+}
+
 function addPlanRow(listId){
   var isPlanned=listId==='planned-list';
   var list=document.getElementById(listId);
@@ -972,7 +977,8 @@ function makeTaskRow(data){
   data=data||{};var row=document.createElement('div');row.className='task-row';
   row.innerHTML='<input class="name-inp'+(data.done?' done':'')+'" type="text" value="'+(data.name||'').replace(/"/g,'&quot;')+'" placeholder="Task…">'
     +'<select class="pri-sel"><option value="high"'+(data.priority==='high'?' selected':'')+'>H</option><option value="med"'+((!data.priority||data.priority==='med')?' selected':'')+'>M</option><option value="low"'+(data.priority==='low'?' selected':'')+'>L</option></select>'
-    +'<input class="col-done" type="checkbox"'+(data.done?' checked':'')+'>';
+    +'<input class="col-done" type="checkbox"'+(data.done?' checked':'')+'>'
+    +'<button class="row-del-btn" onclick="deleteTaskRow(this)" title="Remove">✕</button>';
   updatePriColor(row.querySelector('.pri-sel'));
   row.querySelector('.col-done').addEventListener('change',function(){row.querySelector('.name-inp').classList.toggle('done',this.checked);saveDay();});
   row.querySelectorAll('input,select').forEach(function(el){el.addEventListener('change',function(){if(this.classList.contains('pri-sel'))updatePriColor(this);saveDay();});el.addEventListener('input',saveDay);});
