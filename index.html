@@ -910,7 +910,7 @@ function makePlanRow(data, isPlanned){
   var delHtml='<button class="row-del-btn" onclick="deletePlanRow(this)" title="Remove">✕</button>';
 
   var durVal=data.duration||'00:15';
-  var DUR_OPTIONS=['00:05','00:10','00:15','00:30','00:45','01:00','02:00','03:00'];
+  var DUR_OPTIONS=['00:05','00:10','00:15','00:30','00:45','01:00','01:30','02:00','03:00'];
   var durHtml='<select class="dur-sel">';
   DUR_OPTIONS.forEach(function(d){durHtml+='<option value="'+d+'"'+(durVal===d?' selected':'')+'>'+d+'</option>';});
   durHtml+='</select>';
